@@ -11,6 +11,8 @@ Controll Teknic ServoMotors via an Arduino Mega 2560 and a graphical user interf
 == Step 1: Installation
 either download the source or copy the .m and .ino files into MATLAB and the Arduino IDE
 
+To download the source, click the green CODE dropdown in the upper right of this secction.
+
 
 == Step 3: Load the code
 
