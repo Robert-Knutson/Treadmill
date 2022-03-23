@@ -4,7 +4,7 @@
 :Revision: version#
 :License: Public Domain
 
-= Project: {Project}
+= Project: Treadmill Software
 
 Controll Teknic ServoMotors via an Arduino Mega 2560 and a graphical user interface facilitated via MATLAB
 
