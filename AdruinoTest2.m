@@ -1,9 +1,17 @@
-clear;
-clc;
-clf;
+clear;clc;clf;
 
-LivePlot = 0; %Specify 1 for live plotting, 0 for plot only after data collection
-NumTrials = 5; %The tunber of trials before data collection is complete
+%% Global Controlls
+% LivePlot controlls when data is plotted
+% LivePlot = 1 to plot data in real time (Needs fast computer!!!)
+% LivePlot = 0 to plot only after each trial is complete
+%            The data will still plotted at the end of each run
+LivePlot = 0; 
+
+% NumTrials is the number of trials before data collection is complete
+% Once the data collection loop starts it will only stop when the
+% adequite number of trials has happened.  The software will hang or time
+% out if the number of trials specified is not reached.
+NumTrials = 5; 
 
 %% Preallocate arrays, used to speed up code execution
 Ldata=zeros(7,1000,NumTrials+1);
@@ -78,7 +86,7 @@ while (Trial<=NumTrials)
         tic;    % Begin Timer
         CurrentCommand = "Trigger";
         DataEnable = 1;     % Allow Data Collection to begin
-        disp("Begining Data Collection, Trial = " + num2str(Trial))
+        disp("Begining Data Collection for Trial = " + num2str(Trial))
         i=3;
         j=3;
     elseif IncomingData == "Done"
@@ -87,6 +95,12 @@ while (Trial<=NumTrials)
         disp("Data Collection Complete")
         SampleSpeed(Trial,1) = i/t;   % Calculate average data collection rate over all trials
         SampleSpeed(Trial,2) = j/t;   % Calculate average data collection rate over all trials
+        if LivePlot == 0
+            hold on
+            plot(Ldata(2,:,Trial),Ldata(5,:,Trial));
+            plot(Rdata(2,:,Trial),Rdata(5,:,Trial));
+            hold off
+        end
         Trial = Trial + 1;      % Iterate Trial index
         %t=tMax+1;
         iMax = max([i,j,iMax]);     % Store maximum number of data points
@@ -149,7 +163,7 @@ while (Trial<=NumTrials)
     elseif abs(Rdata(1,j,Trial) - Rdata(1,j-1,Trial)) > 1000
         Rdata(1,j,Trial) = Rdata(1,j-1,Trial);
     end
-    %% Calculate Derivative of speed WRT time
+    %% Calculate Derivative of motor speed WRT time
     % 3 point backward finite difference (derivative) using taylor series expansion
     Ldata(3,i,Trial) = (Ldata(1,i-2,Trial)+((-4)*Ldata(1,i-1,Trial))+(3*Ldata(1,i,Trial)))/(Ldata(2,i,Trial)-Ldata(2,i-2,Trial));
     Rdata(3,j,Trial) = (Rdata(1,j-2,Trial)+((-4)*Rdata(1,j-1,Trial))+(3*Rdata(1,j,Trial)))/(Rdata(2,j,Trial)-Rdata(2,j-2,Trial));
@@ -293,10 +307,6 @@ hold off
 
 SampleSpeed   % Display final sample speed for all trials, used to make sure code is running fast enough
 
-%{
-instrfind() %find if serial port is not closed
-fclose(ans) % Close open serial port
-%}
 
 %% Closes the serial port so other things can use it
 % IF THE PROGRAM FAILS TO COMPLETE, LIKE CRASHES OR ERRORS OUT, YOU HAVE TO COPY AND
@@ -304,5 +314,3 @@ fclose(ans) % Close open serial port
 % SERIAL PORT!!!!!!!!!!!!!!!!!
 clear s;
 
-%openPort=instrfind(); % find if serial port is not closed
-%fclose(openPort) % Close open serial port
