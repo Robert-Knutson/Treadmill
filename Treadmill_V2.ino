@@ -67,6 +67,14 @@ int OldMotorSpeed;
 
 byte OperatingMode;
 
+const int Target_Left_MOTOR_RPM [] = {500, -800, 500, 0};
+const int Target_Right_MOTOR_RPM [] = {-500, 800, -500, 0};
+
+byte i = 0; // Controlls loop for mode 5
+byte ReadBeltSpeed = 0;  // Controlls read  data loop in mode 5
+int NewBeltSpeed [4];
+
+
 void setup() {
   // Begin Serial Output
   //Serial.begin(9600);
@@ -108,7 +116,7 @@ void setup() {
   //attachInterrupt(digitalPinToInterrupt(Estop_pin), Estop_ISR, CHANGE);   //Create ISR to monitor for changes in Estop state
   attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
   attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
-  
+
 }
 
 void loop() {
@@ -178,10 +186,10 @@ void loop() {
     //Serial.print("LeftDutyCycle = ");
     Serial.print('L');
     Serial.println(LeftDutyCycle);
-    
+
     // DELETE THIS LATER
     Serial.print('R');
-    Serial.println(LeftDutyCycle);
+    Serial.println(LeftDutyCycle - 40);
     //Serial.println();
     //logfile.println(data_array);
 
@@ -214,7 +222,7 @@ void loop() {
     PrevousRightHighTime = RightHighTime;
   }
 
-  if (TriggerISR == 1 && digitalRead(TriggerOnPin) == 0 && digitalRead(TriggerOffPin) == 1 && TriggerMode ==0) {
+  if (TriggerISR == 1 && digitalRead(TriggerOnPin) == 0 && digitalRead(TriggerOffPin) == 1 && TriggerMode == 0) {
     Serial.println("Trigger");
     //Serial.println(LastPushTime);
     //Serial.println(CurrentPushTime);
@@ -229,7 +237,7 @@ void loop() {
     digitalWrite(GreenLEDpin, HIGH);
     //delay(500);
     digitalWrite(GreenLEDpin, LOW);
-    
+
     TriggerMode = 1;
     TriggerISR = 0;
     EIFR = bit (INT5);  //  Clears ISR Flag, needed because otherwise ISR will trigger again once reenabled, INT5 is the address for pin 3 ISR
@@ -313,7 +321,7 @@ void Mode1 () {
     digitalWrite(Left_InputB_Pin, LOW);
     stage = 6;
     TriggerMode = 0;
-    
+
   }
 
 }
@@ -331,6 +339,31 @@ void Mode4() {
 
 void Mode5() {
 
+  while (i != 1) {
+    for (int j = 0; j < 4; j++) {
+      //Serial.println(j);
+      Serial.println(Target_Left_MOTOR_RPM[j]);
+      if (j == 3) {
+        Serial.println("Done");
+        i = 1;
+      }
+    }
+  }
+  while (ReadBeltSpeed != 1 && i == 1) {
+    if (Serial.available()) {
+      for (int j = 0; j < 4; j++) {
+        int IncomingData = Serial.parseInt();
+        NewBeltSpeed[j] = IncomingData;
+        //Serial.println("Test");
+        if (j == 3) {
+          for (int k = 0; k < 4; k++) {
+            Serial.println(NewBeltSpeed[k]);
+            ReadBeltSpeed = 1;
+          }
+        }
+      }
+    }
+  }
 }
 
 // ISR to read pwm values sent from motor
