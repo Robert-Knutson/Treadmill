@@ -1,249 +1,366 @@
-clear;
-clc;
-clf;
+/*
 
-LivePlot = 0; %Specify 1 for live plotting, 0 for plot only after data collection
-NumTrials = 10; %The tunber of trials before data collection is complete
+*/
+//Define Pins That Hardware Is Connected To
+const int Estop_pin = 2;  // Define Estop Interrupt pin, has to be pin 2, 3, 18, 19 on MEAGA
+const int Left_HLFB_Pin = 18;  // Define Motor_A HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
+const int Right_HLFB_Pin = 19; // Define Motor_B HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
+const int sdCard = 10; //SD Card Shield Pin
+const int Left_Enable_Pin =  53; // the pin number of the ENABLE pin
+const int Left_InputA_Pin =  4 ; // the pin number of the InputA pin, needs to be pins 2 - 13, 44 - 46 for PWM
+const int Left_InputB_Pin =  5 ; // the pin number of the InputB pin, needs to be pins 2 - 13, 44 - 46 for PWM
 
-data=zeros(7,1000,NumTrials+1);
-%{
-Data row 1 = Source Data 
-Data row 2 = Time of Measurement
-Data row 3 = Derivative of Source Data WRT Time
-Data row 4 = Direction (1 for CW rotation, -1 for CCW rotation)
-Data row 5 = Modified Data
-Data row 6 = Derivative of Modified Data WRT Time
-Data row 7 = Data Modification mode identifier, used in troubleshooting 
-%}
+const int Right_Enable_Pin =  52 ;// the pin number of the ENABLE pin
+const int Right_InputA_Pin =  6 ;// the pin number of the InputA pin, needs to be pins 2 - 13, 44 - 46 for PWM
+const int Right_InputB_Pin =  7 ;// the pin number of the InputB pin, needs to be pins 2 - 13, 44 - 46 for PWM
 
-% Serial object
-%s=serial('COM4','Baudrate', 115200);
-s=serialport('COM4',115200);
+// Define Pins for Rotary Switch
+const int SwitchPin1 = 31;
+const int SwitchPin2 = 29;
+const int SwitchPin3 = 27;
+const int SwitchPin4 = 25;
+const int SwitchPin5 = 23;
 
-% Open Serial Port
-%fopen(s);
-pause(2)
+// Define pin for PushButton
+const int TriggerOnPin = 3;
+const int TriggerOffPin = 8;
 
-% Plotting Data
-% direction = 1 for CW rotation, -1 for CCW rotation
-i=3;
-t=0;
-tMax = 20;
-PrevousDirection = 0;
-direction = 0;
-CurrentCommand = "NA";
-MaxAccel = 20000;
-DataEnable = 0;
-Trial = 1;
-iMax = 0;
-h=plot(NaN,NaN,'r');
-f=figure(1);
-%if (~exist('button','var'))
-%    button = uicontrol('Style','togglebutton','String','Stop',...
-%        'Position',[0 0 50 25], 'parent',f);
-%end
-%disp(h.Value)
-%(t<=tMax)
-while (Trial<=NumTrials)
-    
-    IncomingData = strtrim(readline(s));  % This trims the read string of leading and trailing unnessicary characters
-    %data(1,i) = IncomingData;
-    
-    % extractAfter(data,"R") % Removes everything after R in the string
-    % contains(data,"R") % Returns logical true if read string contains R
-    
-    if contains(IncomingData,"R") == 1
-        IncomingData = extractAfter(IncomingData,"R"); % Removes everything after R in the string, this is case sensitive
-        disp("this works")
-    elseif contains(IncomingData,"L") == 1
-        IncomingData = extractAfter(IncomingData,"L"); % Removes everything after R in the string, this is case sensitive
-        disp("this also works")
-    end
- 
-    if IncomingData == "CW"
-        PrevousDirection = direction;
-        direction = 1;
-        %disp(direction)
-        i=i-1;
-    elseif IncomingData == "CCW"
-        PrevousDirection = direction;
-        direction = -1;
-        %disp(direction)
-        i=i-1;
-    elseif IncomingData == "Position 1"
+// Define Pins for LEDs
+const int RedLEDpin = 39;
+const int GreenLEDpin = 37;
+
+//  Initalize variables for reading PWM values, used in PWM_ISRs
+volatile float LeftHighTime = 0;  // USed in PWM_A_Falling ISR ***THIS VALUE WE NEED TO STORE IN MEMORY CARD***
+volatile float LeftRiseTime = 0;  // Used in Left_PWM_Rising ISR
+volatile float LeftPeriodTime = 0;// Used in Left_PWM_Rising ISR
+int PrevousLeftHighTime = 0;    // Used in comparitor to check if change has occuored in PWM A Value
+
+volatile float RightHighTime = 0;  // USed in PWM_B_Falling ISR ***THIS VALUE WE NEED TO STORE IN MEMORY CARD***
+volatile float RightRiseTime = 0;  // Used in Right_PWM_Rising ISR
+volatile float RightPeriodTime = 0;// Used in Right_PWM_Rising ISR
+int PrevousRightHighTime = 0;     // Used in comparitor to check if change has occuored in PWM B Value
+
+int LeftDutyCycle;
+int RightDutyCycle;
+
+// Variables for Trigger
+volatile int TriggerISR = 0;
+const int TriggerDebounceDelay = 100;
+int CurrentPushTime;
+int LastPushTime;
+byte TriggerMode;
+
+// Initial Pin States, will need to use digitalWrite to actually pull these pins low
+int Left_Enable = LOW;    // Sets Enable Pin to low so the decive doesnt automatically start
+int Left_InputA = LOW;    // Sets InputA to low so the decive doesnt automatically start
+int Left_InputB = LOW;    // Sets InputB to low so the decive doesnt automatically start
+int Right_Enable = LOW;   // Sets Enable Pin to low so the decive doesnt automatically start
+int Right_InputA = LOW;   // Sets InputA to low so the decive doesnt automatically start
+int Right_InputB = LOW;
+
+unsigned long StartMillis;
+unsigned long currentMillis;
+
+byte stage = 0;
+int MotorSpeed;
+int OldMotorSpeed;
+
+byte OperatingMode;
+
+void setup() {
+  // Begin Serial Output
+  //Serial.begin(9600);
+  Serial.begin(250000);
+  delay(1000);      // Wait for predetermined amount of time before contuniung so serial monitor works as expected
+  Serial.println("");
+  Serial.println("this is a test");
+  // set the digital pin as output:
+  pinMode(Left_Enable_Pin, OUTPUT);
+  pinMode(Left_InputA_Pin, OUTPUT);
+  pinMode(Left_InputB_Pin, OUTPUT);
+
+  pinMode(Right_Enable_Pin, OUTPUT);
+  pinMode(Right_InputA_Pin, OUTPUT);
+  pinMode(Right_InputB_Pin, OUTPUT);
+
+  pinMode(Estop_pin, INPUT_PULLUP);
+  pinMode(Left_HLFB_Pin, INPUT_PULLUP);
+  pinMode(Right_HLFB_Pin, INPUT_PULLUP);
+
+  // Define Switch pins as inputs
+  pinMode(SwitchPin1, INPUT_PULLUP);
+  pinMode(SwitchPin2, INPUT_PULLUP);
+  pinMode(SwitchPin3, INPUT_PULLUP);
+  pinMode(SwitchPin4, INPUT_PULLUP);
+  pinMode(SwitchPin5, INPUT_PULLUP);
+
+  pinMode(TriggerOffPin, INPUT_PULLUP);
+  pinMode(TriggerOnPin, INPUT_PULLUP);
+
+  pinMode(RedLEDpin, OUTPUT);
+  pinMode(GreenLEDpin, OUTPUT);
+
+  digitalWrite(RedLEDpin, LOW);
+  digitalWrite(GreenLEDpin, LOW);
+
+  attachInterrupt(digitalPinToInterrupt(TriggerOnPin), Trigger_ISR, FALLING);   //Create ISR to monitor for changes in Trigger state
+
+  //attachInterrupt(digitalPinToInterrupt(Estop_pin), Estop_ISR, CHANGE);   //Create ISR to monitor for changes in Estop state
+  attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
+  attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
+  
+}
+
+void loop() {
+  currentMillis = millis();
+  static int SwitchPosition;
+  static int PrevousSwitchPosition = 99;
+  //static int TestSwitchPosition = 99;
+
+  //static int PrevousTriggerISR = 99;
+
+  SwitchPosition = (-9) + (digitalRead(SwitchPin1) * 1) + (digitalRead(SwitchPin2) * 2) + (digitalRead(SwitchPin3) * 3) + (digitalRead(SwitchPin4) * 4) + (digitalRead(SwitchPin5) * 5);
+  if (PrevousSwitchPosition != SwitchPosition && SwitchPosition != 6) {
+    // Turn off all motor pins so the motor stops when the switch changes positions
+    digitalWrite(Right_Enable_Pin, LOW);
+    digitalWrite(Right_InputA_Pin, LOW);
+    digitalWrite(Right_InputB_Pin, LOW);
+    digitalWrite(Left_Enable_Pin, LOW);
+    digitalWrite(Left_InputA_Pin, LOW);
+    digitalWrite(Left_InputB_Pin, LOW);
+    switch (SwitchPosition) {
+      case 1:
+        Serial.println("Position 1");
         OperatingMode = 1;
-        disp("Operating Mode 1")
-        i=i-1;
-    elseif IncomingData == "Position 2"
+        break;
+      case 2:
+        Serial.println("Position 2");
         OperatingMode = 2;
-        disp("Operating Mode 2")
-        i=i-1;
-    elseif IncomingData == "Position 3"
+        break;
+      case 3:
+        Serial.println("Position 3");
         OperatingMode = 3;
-        disp("Operating Mode 3")
-        i=i-1;
-    elseif IncomingData == "Position 4"
+        break;
+      case 4:
+        Serial.println("Position 4");
         OperatingMode = 4;
-        disp("Operating Mode 4")
-        i=i-1;
-    elseif IncomingData == "Position 5"
+        break;
+      case 5:
+        Serial.println("Position 5");
         OperatingMode = 5;
-        disp("Operating Mode 5")
-        i=i-1;
-    elseif (IncomingData == "Trigger") & (CurrentCommand ~="Trigger")
-        tic;
-        CurrentCommand = "Trigger";
-        DataEnable = 1;
-        disp("Begining Data Collection")
-        i=3;
-    elseif IncomingData == "Done"
-        DataEnable = 0;
-        CurrentCommand = "Done";
-        disp("Data Collection Complete")
-        SampleSpeed(Trial) = i/t;
-        Trial = Trial + 1;
-        %t=tMax+1;
-        iMax = max(i,iMax);
-        i=i-1;
-    elseif DataEnable == 1
-        t=toc;
-        data(1,i,Trial) = IncomingData;
-        data(4,i,Trial) = direction;
-        data(2,i,Trial) = t;
-    
-    end
-       
-    %data(1,i) = readline(s);
-    
-    %data(1,i) = str2double(fscanf(s))
-    % (data(1,i) > data(1,i-1) + 200) |
-    if  (data(1,i,Trial) > 1200) | (data(1,i,Trial) < -1200 )
-        data(1,i,Trial) = 0;
-    end
-    if abs(data(1,i,Trial) - data(1,i-1,Trial)) > 1000
-        data(1,i,Trial) = data(1,i-1,Trial);
-    end
-    
-    % 3 point backward finite difference (derivative) using taylor series
-    % expansion
-    data(3,i,Trial) = (data(1,i-2,Trial)+((-4)*data(1,i-1,Trial))+(3*data(1,i,Trial)))/(data(2,i,Trial)-data(2,i-2,Trial));
-    %data(3,i) = (data(1,i-1) - data(1,i))/(data(2,i-1) - data(2,i)); % Backward Derivative
-    
-    % Decreasing, should be below zero
-    if (data(4,i,Trial) == -1) & (PrevousDirection ==1 | PrevousDirection == 0) & ((data(1,i-1,Trial)-data(1,i,Trial)) < 0) & (data(7,i-1,Trial) ~=5)
-        data(5,i,Trial) = data(1,i,Trial)*-1;
-        data(3,i,Trial) = (data(1,i-2,Trial)+((-4)*data(1,i-1,Trial))+(3*data(1,i,Trial)))/(data(2,i,Trial)-data(2,i-2,Trial));
-        data(7,i,Trial) = 1;
-    % Increasing, should be below zero
-    elseif (data(4,i,Trial) == 1) & (PrevousDirection == -1)& ((data(1,i-1,Trial)-data(1,i,Trial)) > 0)
-        data(5,i,Trial) = data(1,i,Trial)*-1;
-        data(3,i,Trial) = (data(1,i-2,Trial)+((-4)*data(1,i-1,Trial))+(3*data(1,i,Trial)))/(data(2,i,Trial)-data(2,i-2,Trial));
-        data(7,i,Trial) = 2;
-   % Decreasing, should be above zero
-    elseif (data(7,i-1,Trial) ~= 1) & (data(7,i-1,Trial) ~=4) & (data(4,i,Trial) == -1) & (PrevousDirection == 1)
-        data(5,i,Trial) = data(1,i,Trial);
-        data(7,i,Trial) = 3.5;
-    % Should be above zero
-    elseif (data(7,i-1,Trial) ~= 1) & (data(7,i-1,Trial) ~=4) & (data(4,i,Trial) == 1)
-        data(5,i,Trial) = data(1,i,Trial);
-        data(7,i,Trial) = 3;
-    end
-    
-    % At Constant CCW value
-    if ((data(3,i,Trial) > -500) & (data(3,i,Trial) < 500)) & (data(4,i,Trial) == -1) & (data(7,i-1,Trial) ~=5 & data(7,i-1,Trial) ~=3)
-        data(5,i,Trial) = (-1)*abs(data(1,i,Trial));
-        data(7,i,Trial) = 4;
-    % At Constant CW Value
-    elseif ((data(3,i,Trial) > -500) & (data(3,i,Trial) < 500)) & (data(4,i,Trial) == 1) & (data(7,i-1,Trial) ~=4)% At constant CW value
-        data(5,i,Trial) = data(5,i,Trial);
-        data(7,i,Trial) = 5;
-    end
-    
-    data(6,i,Trial) = (data(5,i-2,Trial)+((-4)*data(5,i-1,Trial))+(3*data(5,i,Trial)))/(data(2,i,Trial)-data(2,i-2,Trial));
-    if data(7,i,Trial) == 0
-        data(5,i,Trial) = data(5,i-1,Trial);
-    elseif abs(data(6,i,Trial)) > MaxAccel
-        data(1,i,Trial) = data(1,i-1,Trial);
-        data(3,i,Trial) = data(3,i-1,Trial);
-        data(5,i,Trial) = data(5,i-1,Trial);
-        data(6,i,Trial) = data(6,i-1,Trial);
-        %data(6,i) = (data(5,i-2)+((-4)*data(5,i-1))+(3*data(5,i)))/(data(2,i)-data(2,i-2));
-    end
-     data(6,i,Trial) = (data(5,i-2,Trial)+((-4)*data(5,i-1,Trial))+(3*data(5,i,Trial)))/(data(2,i,Trial)-data(2,i-2,Trial));
-    %if abs(data(6,i)
-    %plot(data(2,:),data(1,:));
-    %ylim([-10 10]);
-    %xlim([0 10]);
-    
-    %data(1,i) = ax;
-    %axes(handles.axes1);
-    
-    if LivePlot == 1
-        set(h, 'XData', data(2,1:i,Trial),'YData',data(5,1:i,Trial));
-        ylim([-1000 1000]);
-        xlim([0 tMax]);
-        drawnow
-    end
-    
-    i=i+1;
-end
-data=data(:,1:iMax-1,:);
-data=data(:,:,1:NumTrials);
+        break;
+      case 6:
+        Serial.println("ERROR");
+        break;
+    }
+    PrevousSwitchPosition = SwitchPosition;
+  }
 
-subplot(2,1,1);
-hold on
-for i = 1:NumTrials
-    plot(data(2,:,i),data(1,:,i),'r');
-    plot(data(2,:,i),data(5,:,i),'b');
-end
-% plot(data(2,:,1),data(1,:,1),'r');
-% plot(data(2,:,1),data(5,:,1),'b');
-% plot(data(2,:,2),data(1,:,2),'r');
-% plot(data(2,:,2),data(5,:,2),'b');
-% plot(data(2,:,3),data(1,:,3),'r');
-% plot(data(2,:,3),data(5,:,3),'b');
-% plot(data(2,:,4),data(1,:,4),'r');
-% plot(data(2,:,4),data(5,:,4),'b');
-% plot(data(2,:,5),data(1,:,5),'r');
-% plot(data(2,:,5),data(5,:,5),'b');
-ylim([min(data(5,:)) max([data(5,:),data(1,:)])]);
-legend("Original Data","Modified Data");
-xlim([min(data(2,:)) max(data(2,:))]);
-ylabel("RPM, CW+")
-xlabel("Time (s)")
-title("RPM vs. Time")
-hold off
 
-subplot(2,1,2);
-hold on
-for i = 1:NumTrials
-    plot(data(2,:,i),data(3,:,i),'r');
-    plot(data(2,:,i),data(6,:,i),'b');
-end
 
-% plot(data(2,:,2),data(3,:,2),'r');
-% plot(data(2,:,2),data(6,:,2),'b');
-% plot(data(2,:,3),data(3,:,3),'r');
-% plot(data(2,:,3),data(6,:,3),'b');
-% plot(data(2,:,4),data(3,:,4),'r');
-% plot(data(2,:,4),data(6,:,4),'b');
-% plot(data(2,:,5),data(3,:,5),'r');
-% plot(data(2,:,5),data(6,:,5),'b');
-xlim([min(data(2,:)) max(data(2,:))]);
-ylabel("(d/dt)RPM")
-xlabel("Time (s)")
-title("Angular Acceleration vs. Time")
-legend("Original Data","Modified Data")
-hold off
+  if (LeftHighTime != PrevousLeftHighTime) {
+    LeftDutyCycle = ((1 - (LeftHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
 
-SampleSpeed
+    //String data_array = "";
+    //data_array += String(LeftHighTime);
+    //data_array += ",";
+    //data_array += String(millis());
 
-%{
-instrfind() %find if serial port is not closed
-fclose(ans) % Close open serial port
-%}
+    //DutyCycle = (Ton/(Ton+Toff))*100;
+    //LeftDutyCycle = LeftHighTime / LeftPeriodTime;
 
-clear s;
+    //Serial.print("Left Period Time = ");
+    //Serial.print(LeftPeriodTime);
+    //Serial.println();
+    //Serial.print("LeftHighTime = ");
+    //Serial.print(LeftHighTime);
+    //Serial.println();
+    //Serial.print("LeftDutyCycle = ");
+    Serial.print('L');
+    Serial.println(LeftDutyCycle);
+    
+    // DELETE THIS LATER
+    Serial.print('R');
+    Serial.println(LeftDutyCycle);
+    //Serial.println();
+    //logfile.println(data_array);
 
-%openPort=instrfind(); % find if serial port is not closed
-%fclose(openPort) % Close open serial port
+    PrevousLeftHighTime = LeftHighTime;
+  }
+
+  if (RightHighTime != PrevousRightHighTime) {
+
+    RightDutyCycle = ((1 - (RightHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
+
+    //Serial.print("RightPeriod Time = ");
+    //Serial.print(RightPeriodTime);
+    //Serial.println();
+    //Serial.print("RightHighTime = ");
+    //Serial.print(RightHighTime);
+    //Serial.println();
+    //Serial.print("RightDutyCycle = ");
+
+    //if (MotorSpeed < 128) {
+    // Serial.println(RightDutyCycle * (-1));
+    //}
+    //else if (MotorSpeed >= 128) {
+    Serial.print('R');
+    Serial.println(RightDutyCycle);
+    //}
+    //Serial.println();
+    //Serial.println(currentMillis - StartMillis);
+    //logfile.print(RightHighTime);
+
+    PrevousRightHighTime = RightHighTime;
+  }
+
+  if (TriggerISR == 1 && digitalRead(TriggerOnPin) == 0 && digitalRead(TriggerOffPin) == 1 && TriggerMode ==0) {
+    Serial.println("Trigger");
+    //Serial.println(LastPushTime);
+    //Serial.println(CurrentPushTime);
+    //LastPushTime = CurrentPushTime;
+    //CurrentPushTime = millis();
+    StartMillis = millis(); // Initial Time used in motor timing loop
+
+    //Serial.println("Time Since Last Button Push");
+    //Serial.println(CurrentPushTime - LastPushTime);
+    //Serial.println();
+
+    digitalWrite(GreenLEDpin, HIGH);
+    //delay(500);
+    digitalWrite(GreenLEDpin, LOW);
+    
+    TriggerMode = 1;
+    TriggerISR = 0;
+    EIFR = bit (INT5);  //  Clears ISR Flag, needed because otherwise ISR will trigger again once reenabled, INT5 is the address for pin 3 ISR
+    attachInterrupt(digitalPinToInterrupt(TriggerOnPin), Trigger_ISR, FALLING);
+  }
+  switch (OperatingMode) {
+    case 1:
+      if (TriggerMode == 1) {
+        //Serial.println(currentMillis - StartMillis);
+        Mode1();
+      }
+      break;
+    case 2:
+      Mode2();
+      break;
+    case 3:
+      Mode3();
+      break;
+    case 4:
+      Mode4();
+      break;
+    case 5:
+      Mode5();
+      break;
+  }
+
+}
+
+void Mode1 () {
+  if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= 1000 && stage != 1) {
+    //Serial.println("Stage 1");
+    MotorSpeed = 20;
+    Serial.println("LCCW");
+    Serial.println("RCCW");
+    digitalWrite(Right_Enable_Pin, HIGH);
+    digitalWrite(Left_Enable_Pin, HIGH);
+    analogWrite(Right_InputB_Pin, MotorSpeed);
+    analogWrite(Left_InputB_Pin, MotorSpeed);
+    stage = 1;
+  }
+  else if (currentMillis - StartMillis >  1000 && currentMillis - StartMillis <=  2000 && stage != 2) {
+    //Serial.println("Stage 2");
+    MotorSpeed = 254;
+    analogWrite(Right_InputB_Pin, MotorSpeed);
+    analogWrite(Left_InputB_Pin, MotorSpeed);
+    Serial.println("LCW");
+    Serial.println("RCW");
+    stage = 2;
+  }
+  else if (currentMillis - StartMillis > 2000 && currentMillis - StartMillis <=  3000 && stage != 3) {
+    //Serial.println("Stage 3");
+    MotorSpeed = 1;
+    analogWrite(Right_InputB_Pin, MotorSpeed);
+    analogWrite(Left_InputB_Pin, MotorSpeed);
+    Serial.println("LCCW");
+    Serial.println("RCCW");
+    stage = 3;
+  }
+  else if (currentMillis - StartMillis > 3000 && currentMillis - StartMillis <=  4000 && stage != 4) {
+    //Serial.println("Stage 4");
+    MotorSpeed = 128;
+    analogWrite(Right_InputB_Pin, MotorSpeed);
+    analogWrite(Left_InputB_Pin, MotorSpeed);
+    Serial.println("LCW");
+    Serial.println("RCW");
+    stage = 4;
+  }
+  else if (currentMillis - StartMillis > 4000 && currentMillis - StartMillis <=  5000 && stage != 5) {
+    digitalWrite(Right_InputA_Pin, HIGH);
+    digitalWrite(Left_InputA_Pin, HIGH);
+    stage = 5;
+  }
+  else if (currentMillis - StartMillis > 5000 && stage != 6) {
+    StartMillis = currentMillis;
+    Serial.println("Done");
+    digitalWrite(Right_Enable_Pin, LOW);
+    digitalWrite(Right_InputA_Pin, LOW);
+    digitalWrite(Right_InputB_Pin, LOW);
+    digitalWrite(Left_Enable_Pin, LOW);
+    digitalWrite(Left_InputA_Pin, LOW);
+    digitalWrite(Left_InputB_Pin, LOW);
+    stage = 6;
+    TriggerMode = 0;
+    
+  }
+
+}
+void Mode2() {
+
+}
+
+void Mode3() {
+
+}
+
+void Mode4() {
+
+}
+
+void Mode5() {
+
+}
+
+// ISR to read pwm values sent from motor
+void Left_PWM_Rising () {
+  attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), PWM_A_Falling, FALLING);
+  //LeftPeriodTime = micros() - LeftRiseTime;
+  LeftRiseTime = micros();
+}
+
+void PWM_A_Falling () {
+  attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
+  LeftHighTime = micros() - LeftRiseTime;
+}
+
+void Right_PWM_Rising () {
+  attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), PWM_B_Falling, FALLING);
+  //RightPeriodTime = micros() - RightRiseTime;
+  RightRiseTime = micros();
+}
+
+void PWM_B_Falling () {
+  attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
+  RightHighTime = micros() - RightRiseTime;
+}
+
+void Trigger_ISR () {
+  detachInterrupt(digitalPinToInterrupt(TriggerOnPin));
+  TriggerISR = 1;
+  //Serial.println("ISR");
+  //Serial.println(digitalRead(TriggerOffPin));
+  //Serial.println(digitalRead(TriggerOnPin));
+  //TriggerDebounceStart = millis();
+}
