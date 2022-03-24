@@ -70,7 +70,7 @@ byte OperatingMode;
 void setup() {
   // Begin Serial Output
   //Serial.begin(9600);
-  Serial.begin(115200);
+  Serial.begin(250000);
   delay(1000);      // Wait for predetermined amount of time before contuniung so serial monitor works as expected
   Serial.println("");
   Serial.println("this is a test");
@@ -176,6 +176,11 @@ void loop() {
     //Serial.print(LeftHighTime);
     //Serial.println();
     //Serial.print("LeftDutyCycle = ");
+    Serial.print('L');
+    Serial.println(LeftDutyCycle);
+    
+    // DELETE THIS LATER
+    Serial.print('R');
     Serial.println(LeftDutyCycle);
     //Serial.println();
     //logfile.println(data_array);
@@ -199,6 +204,7 @@ void loop() {
     // Serial.println(RightDutyCycle * (-1));
     //}
     //else if (MotorSpeed >= 128) {
+    Serial.print('R');
     Serial.println(RightDutyCycle);
     //}
     //Serial.println();
@@ -256,7 +262,8 @@ void Mode1 () {
   if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= 1000 && stage != 1) {
     //Serial.println("Stage 1");
     MotorSpeed = 20;
-    Serial.println("CCW");
+    Serial.println("LCCW");
+    Serial.println("RCCW");
     digitalWrite(Right_Enable_Pin, HIGH);
     digitalWrite(Left_Enable_Pin, HIGH);
     analogWrite(Right_InputB_Pin, MotorSpeed);
@@ -268,7 +275,8 @@ void Mode1 () {
     MotorSpeed = 254;
     analogWrite(Right_InputB_Pin, MotorSpeed);
     analogWrite(Left_InputB_Pin, MotorSpeed);
-    Serial.println("CW");
+    Serial.println("LCW");
+    Serial.println("RCW");
     stage = 2;
   }
   else if (currentMillis - StartMillis > 2000 && currentMillis - StartMillis <=  3000 && stage != 3) {
@@ -276,7 +284,8 @@ void Mode1 () {
     MotorSpeed = 1;
     analogWrite(Right_InputB_Pin, MotorSpeed);
     analogWrite(Left_InputB_Pin, MotorSpeed);
-    Serial.println("CCW");
+    Serial.println("LCCW");
+    Serial.println("RCCW");
     stage = 3;
   }
   else if (currentMillis - StartMillis > 3000 && currentMillis - StartMillis <=  4000 && stage != 4) {
@@ -284,7 +293,8 @@ void Mode1 () {
     MotorSpeed = 128;
     analogWrite(Right_InputB_Pin, MotorSpeed);
     analogWrite(Left_InputB_Pin, MotorSpeed);
-    Serial.println("CW");
+    Serial.println("LCW");
+    Serial.println("RCW");
     stage = 4;
   }
   else if (currentMillis - StartMillis > 4000 && currentMillis - StartMillis <=  5000 && stage != 5) {
