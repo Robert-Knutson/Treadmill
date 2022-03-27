@@ -1,6 +1,4 @@
-/*
 
-*/
 //Define Pins That Hardware Is Connected To
 const int Estop_pin = 2;  // Define Estop Interrupt pin, has to be pin 2, 3, 18, 19 on MEAGA
 const int Left_HLFB_Pin = 18;  // Define Motor_A HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
@@ -67,21 +65,71 @@ int OldMotorSpeed;
 
 byte OperatingMode;
 
-const int Target_Left_MOTOR_RPM [] = {500, -800, 500, 0};
-const int Target_Right_MOTOR_RPM [] = {-500, 800, -500, 0};
+// Belt Speed Profiles, the number of items in speed MUST equal the number of items in interval
+// Left and right do not have to have the same number of entrees
+// The seed profile is in terms of motor RPM, we will convert to PWM later in code
+// The timing interval is in terms of milliseconds (1000 ms = 1s)
+const int LeftSpeedProfile [] = {500, -800, 500, 800, 0, 0, 1000};
+const int LeftMotorTiming []  = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
+const int RightSpeedProfile [] = {-500, 800, -500, 0};
+const int RightMotorTiming [] = {1000, 1000, 1000, 1000};
 
+const byte LeftSpeedLength = (sizeof(LeftSpeedProfile) / sizeof(LeftSpeedProfile[0]));
+const byte RightSpeedLength = (sizeof(RightSpeedProfile) / sizeof(RightSpeedProfile[0]));
+
+int LeftTiming [LeftSpeedLength];
+int RightTiming [RightSpeedLength];
+
+int LeftSpeedPWM [LeftSpeedLength];
+int RightSpeedPWM [RightSpeedLength];
+
+byte LeftStage = 0;
+byte RightStage = 0;
+
+// Settings for 2 way communication on mode 5
 byte i = 0; // Controlls loop for mode 5
 byte ReadBeltSpeed = 0;  // Controlls read  data loop in mode 5
 int NewBeltSpeed [4];
 
 
+// Varriables For EStop State
+bool EstopState;
+
 void setup() {
   // Begin Serial Output
-  //Serial.begin(9600);
-  Serial.begin(250000);
-  delay(1000);      // Wait for predetermined amount of time before contuniung so serial monitor works as expected
+  Serial.begin(9600);
+  //Serial.begin(250000);
+  delay(2000);      // Wait for predetermined amount of time before contuniung so serial monitor doesnt output garbage
+  Serial.println();
+
+  int LeftTimingSum = 0;
+  int RightTimingSum = 0;
+
+  for (int L = 0; L < LeftSpeedLength; L++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    LeftSpeedPWM [L] = map(LeftSpeedProfile[L], -1000, 1000, 0, 255);
+    LeftTimingSum += LeftMotorTiming [L];
+    LeftTiming [L] = LeftTimingSum;
+    Serial.print("Left Stage PWM ");
+    Serial.print(L);
+    Serial.print(" = ");
+    Serial.println(LeftSpeedPWM [L]);
+    Serial.println(LeftTiming [L]);
+  }
+  Serial.println();
+  for (int R = 0; R < RightSpeedLength; R++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    RightSpeedPWM [R] = map(RightSpeedProfile[R], -1000, 1000, 0, 255);
+    RightTimingSum += RightMotorTiming [R];
+    RightTiming [R] = RightTimingSum;
+    Serial.print(" Right Stage PWM ");
+    Serial.print(R);
+    Serial.print(" = ");
+    Serial.println( RightSpeedPWM [R]);
+    Serial.println(LeftTiming [R]);
+  }
   Serial.println("");
-  Serial.println("this is a test");
+
   // set the digital pin as output:
   pinMode(Left_Enable_Pin, OUTPUT);
   pinMode(Left_InputA_Pin, OUTPUT);
@@ -113,29 +161,29 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(TriggerOnPin), Trigger_ISR, FALLING);   //Create ISR to monitor for changes in Trigger state
 
-  //attachInterrupt(digitalPinToInterrupt(Estop_pin), Estop_ISR, CHANGE);   //Create ISR to monitor for changes in Estop state
   attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
   attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
 
 }
 
 void loop() {
+  EstopState = digitalRead(Estop_pin);
+  if (EstopState == 1) {
+    // This forces the motors to disable every loop iteration even if another function is trying to enable them.
+    digitalWrite(Right_Enable_Pin, LOW);
+    digitalWrite(Left_Enable_Pin, LOW);
+    digitalWrite(RedLEDpin, HIGH);
+    Serial.println("EStop");
+  }
   currentMillis = millis();
   static int SwitchPosition;
   static int PrevousSwitchPosition = 99;
-  //static int TestSwitchPosition = 99;
-
-  //static int PrevousTriggerISR = 99;
 
   SwitchPosition = (-9) + (digitalRead(SwitchPin1) * 1) + (digitalRead(SwitchPin2) * 2) + (digitalRead(SwitchPin3) * 3) + (digitalRead(SwitchPin4) * 4) + (digitalRead(SwitchPin5) * 5);
   if (PrevousSwitchPosition != SwitchPosition && SwitchPosition != 6) {
-    // Turn off all motor pins so the motor stops when the switch changes positions
+    // Turn off motor enable pins so the motor stops when the switch changes positions
     digitalWrite(Right_Enable_Pin, LOW);
-    digitalWrite(Right_InputA_Pin, LOW);
-    digitalWrite(Right_InputB_Pin, LOW);
     digitalWrite(Left_Enable_Pin, LOW);
-    digitalWrite(Left_InputA_Pin, LOW);
-    digitalWrite(Left_InputB_Pin, LOW);
     switch (SwitchPosition) {
       case 1:
         Serial.println("Position 1");
@@ -164,80 +212,24 @@ void loop() {
     PrevousSwitchPosition = SwitchPosition;
   }
 
-
-
   if (LeftHighTime != PrevousLeftHighTime) {
     LeftDutyCycle = ((1 - (LeftHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
-
-    //String data_array = "";
-    //data_array += String(LeftHighTime);
-    //data_array += ",";
-    //data_array += String(millis());
-
-    //DutyCycle = (Ton/(Ton+Toff))*100;
-    //LeftDutyCycle = LeftHighTime / LeftPeriodTime;
-
-    //Serial.print("Left Period Time = ");
-    //Serial.print(LeftPeriodTime);
-    //Serial.println();
-    //Serial.print("LeftHighTime = ");
-    //Serial.print(LeftHighTime);
-    //Serial.println();
-    //Serial.print("LeftDutyCycle = ");
     Serial.print('L');
     Serial.println(LeftDutyCycle);
-
-    // DELETE THIS LATER
-    Serial.print('R');
-    Serial.println(LeftDutyCycle - 40);
-    //Serial.println();
-    //logfile.println(data_array);
-
     PrevousLeftHighTime = LeftHighTime;
   }
 
   if (RightHighTime != PrevousRightHighTime) {
-
     RightDutyCycle = ((1 - (RightHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
-
-    //Serial.print("RightPeriod Time = ");
-    //Serial.print(RightPeriodTime);
-    //Serial.println();
-    //Serial.print("RightHighTime = ");
-    //Serial.print(RightHighTime);
-    //Serial.println();
-    //Serial.print("RightDutyCycle = ");
-
-    //if (MotorSpeed < 128) {
-    // Serial.println(RightDutyCycle * (-1));
-    //}
-    //else if (MotorSpeed >= 128) {
     Serial.print('R');
     Serial.println(RightDutyCycle);
-    //}
-    //Serial.println();
-    //Serial.println(currentMillis - StartMillis);
-    //logfile.print(RightHighTime);
-
     PrevousRightHighTime = RightHighTime;
   }
 
   if (TriggerISR == 1 && digitalRead(TriggerOnPin) == 0 && digitalRead(TriggerOffPin) == 1 && TriggerMode == 0) {
     Serial.println("Trigger");
-    //Serial.println(LastPushTime);
-    //Serial.println(CurrentPushTime);
-    //LastPushTime = CurrentPushTime;
-    //CurrentPushTime = millis();
     StartMillis = millis(); // Initial Time used in motor timing loop
-
-    //Serial.println("Time Since Last Button Push");
-    //Serial.println(CurrentPushTime - LastPushTime);
-    //Serial.println();
-
     digitalWrite(GreenLEDpin, HIGH);
-    //delay(500);
-    digitalWrite(GreenLEDpin, LOW);
-
     TriggerMode = 1;
     TriggerISR = 0;
     EIFR = bit (INT5);  //  Clears ISR Flag, needed because otherwise ISR will trigger again once reenabled, INT5 is the address for pin 3 ISR
@@ -246,12 +238,13 @@ void loop() {
   switch (OperatingMode) {
     case 1:
       if (TriggerMode == 1) {
-        //Serial.println(currentMillis - StartMillis);
         Mode1();
       }
       break;
     case 2:
-      Mode2();
+      if (TriggerMode == 1) {
+        Mode2();
+      }
       break;
     case 3:
       Mode3();
@@ -313,6 +306,7 @@ void Mode1 () {
   else if (currentMillis - StartMillis > 5000 && stage != 6) {
     StartMillis = currentMillis;
     Serial.println("Done");
+    digitalWrite(GreenLEDpin, LOW);
     digitalWrite(Right_Enable_Pin, LOW);
     digitalWrite(Right_InputA_Pin, LOW);
     digitalWrite(Right_InputB_Pin, LOW);
@@ -327,6 +321,31 @@ void Mode1 () {
 }
 void Mode2() {
 
+  if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= LeftTiming[0] && /*LeftStage != 1*/ LeftStage < 1) {
+    digitalWrite(Left_Enable_Pin, HIGH);
+    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
+    Serial.print("Left Stage ");
+    Serial.print(LeftStage);
+    Serial.print(" - ");
+    Serial.println(LeftSpeedPWM [LeftStage]);
+    LeftStage++;
+  }
+
+  if (currentMillis - StartMillis >  LeftTiming[LeftStage - 1] && currentMillis - StartMillis <= LeftTiming[LeftStage] && LeftStage >= 1) {
+    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
+    //LeftStage=2;
+    Serial.print("Left Stage ");
+    Serial.print(LeftStage);
+    Serial.print(" - ");
+    Serial.println(LeftSpeedPWM [LeftStage]);
+    LeftStage++;
+  }
+  if (LeftStage == LeftSpeedLength && currentMillis - StartMillis >  LeftTiming[LeftStage -1]) {
+    TriggerMode = 0;
+    LeftStage = 0;
+    digitalWrite(GreenLEDpin, LOW);
+    Serial.println("Done");
+  }
 }
 
 void Mode3() {
@@ -342,7 +361,7 @@ void Mode5() {
   while (i != 1) {
     for (int j = 0; j < 4; j++) {
       //Serial.println(j);
-      Serial.println(Target_Left_MOTOR_RPM[j]);
+      Serial.println(LeftSpeedProfile[j]);
       if (j == 3) {
         Serial.println("Done");
         i = 1;
