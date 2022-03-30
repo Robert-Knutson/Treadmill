@@ -1,9 +1,58 @@
+// **************************************************
+// ***************BELT SPEED SETTINGS ***************
+// **************************************************
+// The variables below control the speeds and timings of the desired perturbation profile
+// The profiles are defined in terms of speed and duration
+// So, the first item in speed is run for as long as the time listed in the first interval
+// The speed profile is defined in terms of motor RPM
+// The timing interval is defined in terms of milliseconds (1000 ms = 1s)
+// ***NOTE*** - The number of items in speed MUST equal the number of items in interval
+//              Left and Right do not have to have the same number of items
+const int LeftSpeedProfile2 []  = {500, -800, 500, 800, 0, 1000};
+const int LeftMotorTiming2 []   = {1000, 2000, 1000, 2000, 2000, 3000};
+const int RightSpeedProfile2 [] = {-500, 800, -500, 0};
+const int RightMotorTiming2 []  = {12000, 1000, 1000, 1000};
 
-//Define Pins That Hardware Is Connected To
-const int Estop_pin = 2;  // Define Estop Interrupt pin, has to be pin 2, 3, 18, 19 on MEAGA
+const int LeftSpeedProfile3 []  = {250, -250, 250, 800, 0, 0, 250};
+const int LeftMotorTiming3 []   = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
+const int RightSpeedProfile3 [] = {-700, 500, -300, 0};
+const int RightMotorTiming3 []  = {1000, 1000, 2000, 1000};
+
+const int LeftSpeedProfile4 []  = {550, -550, 550, 500, 5, 5, 750};
+const int LeftMotorTiming4 []   = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
+const int RightSpeedProfile4 [] = {-600, 600, -600, 0};
+const int RightMotorTiming4 []  = {3000, 1000, 3000, 1000};
+
+// The following variables control the creation of the desired profiles
+const byte LeftSpeedLength2 = (sizeof(LeftSpeedProfile2) / sizeof(LeftSpeedProfile2[0]));
+const byte RightSpeedLength2 = (sizeof(RightSpeedProfile2) / sizeof(RightSpeedProfile2[0]));
+const byte LeftSpeedLength3 = (sizeof(LeftSpeedProfile3) / sizeof(LeftSpeedProfile3[0]));
+const byte RightSpeedLength3 = (sizeof(RightSpeedProfile3) / sizeof(RightSpeedProfile3[0]));
+const byte LeftSpeedLength4 = (sizeof(LeftSpeedProfile4) / sizeof(LeftSpeedProfile4[0]));
+const byte RightSpeedLength4 = (sizeof(RightSpeedProfile4) / sizeof(RightSpeedProfile4[0]));
+
+int LeftTiming2 [LeftSpeedLength2];
+int RightTiming2 [RightSpeedLength2];
+int LeftTiming3 [LeftSpeedLength3];
+int RightTiming3 [RightSpeedLength3];
+int LeftTiming4 [LeftSpeedLength4];
+int RightTiming4 [RightSpeedLength4];
+
+int LeftSpeedPWM2 [LeftSpeedLength2];
+int RightSpeedPWM2 [RightSpeedLength2];
+int LeftSpeedPWM3 [LeftSpeedLength3];
+int RightSpeedPWM3 [RightSpeedLength3];
+int LeftSpeedPWM4 [LeftSpeedLength4];
+int RightSpeedPWM4 [RightSpeedLength4];
+
+// **************************************************
+// ***************** Hardware Pins ******************
+// **************************************************
+// In the following section we will define the pins that the hardware is connected to
+const int Estop_pin = 2;  // Define Estop pin
 const int Left_HLFB_Pin = 18;  // Define Motor_A HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
 const int Right_HLFB_Pin = 19; // Define Motor_B HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
-const int sdCard = 10; //SD Card Shield Pin
+
 const int Left_Enable_Pin =  53; // the pin number of the ENABLE pin
 const int Left_InputA_Pin =  4 ; // the pin number of the InputA pin, needs to be pins 2 - 13, 44 - 46 for PWM
 const int Left_InputB_Pin =  5 ; // the pin number of the InputB pin, needs to be pins 2 - 13, 44 - 46 for PWM
@@ -27,16 +76,19 @@ const int TriggerOffPin = 8;
 const int RedLEDpin = 39;
 const int GreenLEDpin = 37;
 
-//  Initalize variables for reading PWM values, used in PWM_ISRs
+// **************************************************
+// **************** Global Variables ****************
+// **************************************************
+//  Initialize variables for reading PWM values, used in PWM_ISRs
 volatile float LeftHighTime = 0;  // USed in PWM_A_Falling ISR ***THIS VALUE WE NEED TO STORE IN MEMORY CARD***
 volatile float LeftRiseTime = 0;  // Used in Left_PWM_Rising ISR
 volatile float LeftPeriodTime = 0;// Used in Left_PWM_Rising ISR
-int PrevousLeftHighTime = 0;    // Used in comparitor to check if change has occuored in PWM A Value
+int PrevousLeftHighTime = 0;    // Used in comparator to check if change has occurred in PWM A Value
 
 volatile float RightHighTime = 0;  // USed in PWM_B_Falling ISR ***THIS VALUE WE NEED TO STORE IN MEMORY CARD***
 volatile float RightRiseTime = 0;  // Used in Right_PWM_Rising ISR
 volatile float RightPeriodTime = 0;// Used in Right_PWM_Rising ISR
-int PrevousRightHighTime = 0;     // Used in comparitor to check if change has occuored in PWM B Value
+int PrevousRightHighTime = 0;     // Used in comparator to check if change has occurred in PWM B Value
 
 int LeftDutyCycle;
 int RightDutyCycle;
@@ -48,14 +100,6 @@ int CurrentPushTime;
 int LastPushTime;
 byte TriggerMode;
 
-// Initial Pin States, will need to use digitalWrite to actually pull these pins low
-int Left_Enable = LOW;    // Sets Enable Pin to low so the decive doesnt automatically start
-int Left_InputA = LOW;    // Sets InputA to low so the decive doesnt automatically start
-int Left_InputB = LOW;    // Sets InputB to low so the decive doesnt automatically start
-int Right_Enable = LOW;   // Sets Enable Pin to low so the decive doesnt automatically start
-int Right_InputA = LOW;   // Sets InputA to low so the decive doesnt automatically start
-int Right_InputB = LOW;
-
 unsigned long StartMillis;
 unsigned long currentMillis;
 
@@ -63,70 +107,108 @@ byte stage = 0;
 int MotorSpeed;
 int OldMotorSpeed;
 
-byte OperatingMode;
-
-// Belt Speed Profiles, the number of items in speed MUST equal the number of items in interval
-// Left and right do not have to have the same number of entrees
-// The seed profile is in terms of motor RPM, we will convert to PWM later in code
-// The timing interval is in terms of milliseconds (1000 ms = 1s)
-const int LeftSpeedProfile [] = {500, -800, 500, 800, 0, 0, 1000};
-const int LeftMotorTiming []  = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
-const int RightSpeedProfile [] = {-500, 800, -500, 0};
-const int RightMotorTiming [] = {1000, 1000, 1000, 1000};
-
-const byte LeftSpeedLength = (sizeof(LeftSpeedProfile) / sizeof(LeftSpeedProfile[0]));
-const byte RightSpeedLength = (sizeof(RightSpeedProfile) / sizeof(RightSpeedProfile[0]));
-
-int LeftTiming [LeftSpeedLength];
-int RightTiming [RightSpeedLength];
-
-int LeftSpeedPWM [LeftSpeedLength];
-int RightSpeedPWM [RightSpeedLength];
-
-byte LeftStage = 0;
-byte RightStage = 0;
-
-// Settings for 2 way communication on mode 5
+// Settings for 2-way communication on mode 5
 byte i = 0; // Controlls loop for mode 5
-byte ReadBeltSpeed = 0;  // Controlls read  data loop in mode 5
+byte ReadBeltSpeed = 0;  // Controls read  data loop in mode 5
 int NewBeltSpeed [4];
 
-
-// Varriables For EStop State
+// Variables For EStop State
 bool EstopState;
 
 void setup() {
   // Begin Serial Output
   Serial.begin(9600);
   //Serial.begin(250000);
-  delay(2000);      // Wait for predetermined amount of time before contuniung so serial monitor doesnt output garbage
+  delay(2000);      // Wait for predetermined amount of time before continuing so serial monitor doesn’t output garbage
   Serial.println();
 
   int LeftTimingSum = 0;
   int RightTimingSum = 0;
+  int LeftTimingSum2 = 0;
+  int RightTimingSum2 = 0;
+  int LeftTimingSum3 = 0;
+  int RightTimingSum3 = 0;
+  int LeftTimingSum4 = 0;
+  int RightTimingSum4 = 0;
 
-  for (int L = 0; L < LeftSpeedLength; L++) {
+  // Mode 2
+  for (int L = 0; L < LeftSpeedLength2; L++) {
     // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
-    LeftSpeedPWM [L] = map(LeftSpeedProfile[L], -1000, 1000, 0, 255);
-    LeftTimingSum += LeftMotorTiming [L];
-    LeftTiming [L] = LeftTimingSum;
-    Serial.print("Left Stage PWM ");
+    LeftSpeedPWM2 [L] = map(LeftSpeedProfile2[L], -1000, 1000, 0, 255);
+    LeftTimingSum2 += LeftMotorTiming2 [L];
+    LeftTiming2 [L] = LeftTimingSum2;
+    Serial.print("Left Mode 2 PWM ");
     Serial.print(L);
     Serial.print(" = ");
-    Serial.println(LeftSpeedPWM [L]);
-    Serial.println(LeftTiming [L]);
+    Serial.print(LeftSpeedPWM2 [L]);
+    Serial.print(" @ ");
+    Serial.println(LeftTiming2 [L]);
   }
-  Serial.println();
-  for (int R = 0; R < RightSpeedLength; R++) {
+  for (int R = 0; R < RightSpeedLength2; R++) {
     // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
-    RightSpeedPWM [R] = map(RightSpeedProfile[R], -1000, 1000, 0, 255);
-    RightTimingSum += RightMotorTiming [R];
-    RightTiming [R] = RightTimingSum;
-    Serial.print(" Right Stage PWM ");
+    RightSpeedPWM2 [R] = map(RightSpeedProfile2[R], -1000, 1000, 0, 255);
+    RightTimingSum2 += RightMotorTiming2 [R];
+    RightTiming2 [R] = RightTimingSum2;
+    Serial.print("Right Mode 2 PWM ");
     Serial.print(R);
     Serial.print(" = ");
-    Serial.println( RightSpeedPWM [R]);
-    Serial.println(LeftTiming [R]);
+    Serial.print( RightSpeedPWM2 [R]);
+    Serial.print(" @ ");
+    Serial.println(RightTiming2 [R]);
+  }
+  Serial.println("");
+
+  // Mode 3
+  for (int L = 0; L < LeftSpeedLength3; L++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    LeftSpeedPWM3 [L] = map(LeftSpeedProfile3[L], -1000, 1000, 0, 255);
+    LeftTimingSum3 += LeftMotorTiming3 [L];
+    LeftTiming3 [L] = LeftTimingSum3;
+    Serial.print("Left Mode 3 PWM ");
+    Serial.print(L);
+    Serial.print(" = ");
+    Serial.print(LeftSpeedPWM3 [L]);
+    Serial.print(" @ ");
+    Serial.println(LeftTiming3 [L]);
+  }
+  for (int R = 0; R < RightSpeedLength3; R++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    RightSpeedPWM3 [R] = map(RightSpeedProfile3[R], -1000, 1000, 0, 255);
+    RightTimingSum3 += RightMotorTiming3 [R];
+    RightTiming3 [R] = RightTimingSum3;
+    Serial.print("Right Mode 3 PWM ");
+    Serial.print(R);
+    Serial.print(" = ");
+    Serial.print( RightSpeedPWM3 [R]);
+    Serial.print(" @ ");
+    Serial.println(RightTiming3 [R]);
+  }
+  Serial.println("");
+
+  // Mode 4
+  for (int L = 0; L < LeftSpeedLength4; L++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    LeftSpeedPWM4 [L] = map(LeftSpeedProfile4[L], -1000, 1000, 0, 255);
+    LeftTimingSum4 += LeftMotorTiming4 [L];
+    LeftTiming4 [L] = LeftTimingSum4;
+    Serial.print("Left Mode 4 PWM ");
+    Serial.print(L);
+    Serial.print(" = ");
+    Serial.print(LeftSpeedPWM4 [L]);
+    Serial.print(" @ ");
+    Serial.println(LeftTiming4 [L]);
+  }
+  for (int R = 0; R < RightSpeedLength4; R++) {
+    // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
+    RightSpeedPWM4 [R] = map(RightSpeedProfile4[R], -1000, 1000, 0, 255);
+    RightTimingSum4 += RightMotorTiming4 [R];
+    RightTiming4 [R] = RightTimingSum4;
+    Serial.print("Right Mode 4 PWM ");
+    Serial.print(R);
+    Serial.print(" = ");
+    Serial.print( RightSpeedPWM4 [R]);
+    Serial.print(" @ ");
+    Serial.println(RightTiming4 [R]);
   }
   Serial.println("");
 
@@ -163,21 +245,28 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
   attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
-
 }
 
 void loop() {
   EstopState = digitalRead(Estop_pin);
+  static bool PrevousEstopState;
   if (EstopState == 1) {
     // This forces the motors to disable every loop iteration even if another function is trying to enable them.
     digitalWrite(Right_Enable_Pin, LOW);
     digitalWrite(Left_Enable_Pin, LOW);
     digitalWrite(RedLEDpin, HIGH);
+    PrevousEstopState = 1;
     Serial.println("EStop");
   }
+  else if (PrevousEstopState != EstopState) {
+    Serial.println("EStop Disengaged");
+    digitalWrite(RedLEDpin, LOW);
+    PrevousEstopState = 0;
+  }
   currentMillis = millis();
-  static int SwitchPosition;
-  static int PrevousSwitchPosition = 99;
+  static byte SwitchPosition;
+  static byte PrevousSwitchPosition = 8;
+  static byte OperatingMode;
 
   SwitchPosition = (-9) + (digitalRead(SwitchPin1) * 1) + (digitalRead(SwitchPin2) * 2) + (digitalRead(SwitchPin3) * 3) + (digitalRead(SwitchPin4) * 4) + (digitalRead(SwitchPin5) * 5);
   if (PrevousSwitchPosition != SwitchPosition && SwitchPosition != 6) {
@@ -213,14 +302,14 @@ void loop() {
   }
 
   if (LeftHighTime != PrevousLeftHighTime) {
-    LeftDutyCycle = ((1 - (LeftHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
+    LeftDutyCycle = ((1 - (LeftHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of precision so we get more precision
     Serial.print('L');
     Serial.println(LeftDutyCycle);
     PrevousLeftHighTime = LeftHighTime;
   }
 
   if (RightHighTime != PrevousRightHighTime) {
-    RightDutyCycle = ((1 - (RightHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of perccisions so we get more perccision
+    RightDutyCycle = ((1 - (RightHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of precision so we get more precision
     Serial.print('R');
     Serial.println(RightDutyCycle);
     PrevousRightHighTime = RightHighTime;
@@ -320,48 +409,22 @@ void Mode1 () {
 
 }
 void Mode2() {
-
-  if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= LeftTiming[0] && /*LeftStage != 1*/ LeftStage < 1) {
-    digitalWrite(Left_Enable_Pin, HIGH);
-    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
-    Serial.print("Left Stage ");
-    Serial.print(LeftStage);
-    Serial.print(" - ");
-    Serial.println(LeftSpeedPWM [LeftStage]);
-    LeftStage++;
-  }
-
-  if (currentMillis - StartMillis >  LeftTiming[LeftStage - 1] && currentMillis - StartMillis <= LeftTiming[LeftStage] && LeftStage >= 1) {
-    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
-    //LeftStage=2;
-    Serial.print("Left Stage ");
-    Serial.print(LeftStage);
-    Serial.print(" - ");
-    Serial.println(LeftSpeedPWM [LeftStage]);
-    LeftStage++;
-  }
-  if (LeftStage == LeftSpeedLength && currentMillis - StartMillis >  LeftTiming[LeftStage -1]) {
-    TriggerMode = 0;
-    LeftStage = 0;
-    digitalWrite(GreenLEDpin, LOW);
-    Serial.println("Done");
-  }
+  MotorController(LeftSpeedLength2, LeftSpeedPWM2, LeftTiming2, RightSpeedLength2, RightSpeedPWM2, RightTiming2);
 }
 
 void Mode3() {
-
+  MotorController(LeftSpeedLength3, LeftSpeedPWM3, LeftTiming3, RightSpeedLength3, RightSpeedPWM3, RightTiming3);
 }
 
 void Mode4() {
-
+  MotorController(LeftSpeedLength4, LeftSpeedPWM4, LeftTiming4, RightSpeedLength4, RightSpeedPWM4, RightTiming4);
 }
 
 void Mode5() {
-
   while (i != 1) {
     for (int j = 0; j < 4; j++) {
       //Serial.println(j);
-      Serial.println(LeftSpeedProfile[j]);
+      Serial.println(LeftSpeedProfile4[j]);
       if (j == 3) {
         Serial.println("Done");
         i = 1;
@@ -384,6 +447,95 @@ void Mode5() {
     }
   }
 }
+
+void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [], int RightSpeedLength, int RightSpeedPWM [], int RightTiming []) {
+  static byte LeftStage;
+  static byte RightStage;
+  if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= LeftTiming[0] && LeftStage < 1) {
+    digitalWrite(Left_Enable_Pin, HIGH);
+    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
+    Serial.print("Left Stage ");
+    Serial.print(LeftStage);
+    Serial.print(" - ");
+    Serial.println(LeftSpeedPWM [LeftStage]);
+    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    Serial.println();
+    LeftStage = 1;
+  }
+
+  else if (currentMillis - StartMillis >  LeftTiming[LeftStage - 1] && currentMillis - StartMillis <= LeftTiming[LeftStage] && LeftStage >= 1) {
+    analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
+    //LeftStage=2;
+    Serial.print("Left Stage ");
+    Serial.print(LeftStage);
+    Serial.print(" - ");
+    Serial.println(LeftSpeedPWM [LeftStage]);
+    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    Serial.println();
+    LeftStage++;
+  }
+  else if (LeftStage == LeftSpeedLength && currentMillis - StartMillis >  LeftTiming[LeftStage - 1]) {
+    if (LeftTiming[LeftSpeedLength - 1] >= RightTiming[RightSpeedLength - 1]) {
+      Serial.println(LeftTiming[LeftSpeedLength - 1]);
+      Serial.println(RightTiming[RightSpeedLength - 1]);
+      TriggerMode = 0;
+      digitalWrite(GreenLEDpin, LOW);
+    }
+    LeftStage = 0;
+    Serial.println("Left Done");
+  }
+
+  // Same for right motor
+  if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= RightTiming[0] && RightStage < 1) {
+    digitalWrite(Right_Enable_Pin, HIGH);
+    analogWrite(Right_InputB_Pin, RightSpeedPWM [RightStage]);
+    Serial.print("Right Stage ");
+    Serial.print(RightStage);
+    Serial.print(" - ");
+    Serial.println(RightSpeedPWM [RightStage]);
+    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    Serial.println();
+    RightStage = 1;
+  }
+
+  else if (currentMillis - StartMillis >  RightTiming[RightStage - 1] && currentMillis - StartMillis <= RightTiming[RightStage] && RightStage >= 1) {
+    analogWrite(Right_InputB_Pin, RightSpeedPWM [RightStage]);
+    //LeftStage=2;
+    Serial.print("Right Stage ");
+    Serial.print(RightStage);
+    Serial.print(" - ");
+    Serial.println(RightSpeedPWM [RightStage]);
+    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    Serial.println();
+    RightStage++;
+  }
+  else if (RightStage == RightSpeedLength && currentMillis - StartMillis >  RightTiming[RightStage - 1]) {
+    if (RightTiming[RightSpeedLength - 1] >= LeftTiming[LeftSpeedLength - 1]) {
+      Serial.println(RightTiming[RightSpeedLength - 1]);
+      Serial.println(LeftTiming[LeftSpeedLength - 1]);
+      TriggerMode = 0;
+      digitalWrite(GreenLEDpin, LOW);
+    }
+    RightStage = 0;
+    Serial.println("Right Done");
+  }
+}
+void MotorDirection (int LeftSpeedPWM, int RightSpeedPWM) {
+  if (LeftSpeedPWM < 127) {
+    Serial.println("LCCW");
+  }
+  else if (LeftSpeedPWM > 127) {
+    Serial.println("LCW");
+  }
+  if (RightSpeedPWM < 127) {
+    Serial.println("RCCW");
+  }
+  else if (RightSpeedPWM > 127) {
+    Serial.println("RCW");
+  }
+}
+
+
 
 // ISR to read pwm values sent from motor
 void Left_PWM_Rising () {
