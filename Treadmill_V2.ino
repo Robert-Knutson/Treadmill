@@ -1,3 +1,4 @@
+
 // **************************************************
 // ***************BELT SPEED SETTINGS ***************
 // **************************************************
@@ -6,8 +7,8 @@
 // So, the first item in speed is run for as long as the time listed in the first interval
 // The speed profile is defined in terms of motor RPM
 // The timing interval is defined in terms of milliseconds (1000 ms = 1s)
-// ***NOTE*** - The number of items in speed MUST equal the number of items in interval
-//              Left and Right do not have to have the same number of items
+// ***NOTE*** - The number of items in speed MUST equal the number of items in interval for their respective sides
+//            - Left and Right do not have to have the same number of items
 const int LeftSpeedProfile2 []  = {500, -800, 500, 800, 0, 1000};
 const int LeftMotorTiming2 []   = {1000, 2000, 1000, 2000, 2000, 3000};
 const int RightSpeedProfile2 [] = {-500, 800, -500, 0};
@@ -18,10 +19,11 @@ const int LeftMotorTiming3 []   = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
 const int RightSpeedProfile3 [] = {-700, 500, -300, 0};
 const int RightMotorTiming3 []  = {1000, 1000, 2000, 1000};
 
-const int LeftSpeedProfile4 []  = {550, -550, 550, 500, 5, 5, 750};
-const int LeftMotorTiming4 []   = {1000, 2000, 1000, 2000, 1000, 2000, 3000};
-const int RightSpeedProfile4 [] = {-600, 600, -600, 0};
-const int RightMotorTiming4 []  = {3000, 1000, 3000, 1000};
+const int LeftSpeedProfile4 []  = {44,	56,	68,	81, 	93,	105,	117,	129, 141,	153,	165,	177,	190,	202,	214,	223,	221,	219,	216,	214,	211,	209,	207,	204,	202,	199,	197,	194,	192,	190,	187,	185,	182,	180,	177,	175, 173,	170, 168};
+const int LeftMotorTiming4 []   = {25,	51,	76,	101, 126,	152,	177,	202, 227,	253,	278,	303,	328,	354,	379,	404,	429,	455,	480,	505,	531,	556,	581,	606,	632,	657,	682,	707,	733,	758,	783,	808,	834,	859,	884,	909, 935,	960, 985};
+
+const int RightSpeedProfile4 [] = {-1.2};
+const int RightMotorTiming4 []  = {985};
 
 // The following variables control the creation of the desired profiles
 const byte LeftSpeedLength2 = (sizeof(LeftSpeedProfile2) / sizeof(LeftSpeedProfile2[0]));
@@ -103,6 +105,9 @@ byte TriggerMode;
 unsigned long StartMillis;
 unsigned long currentMillis;
 
+byte LeftStage = 0;
+byte RightStage = 0;
+
 byte stage = 0;
 int MotorSpeed;
 int OldMotorSpeed;
@@ -114,6 +119,13 @@ int NewBeltSpeed [4];
 
 // Variables For EStop State
 bool EstopState;
+
+// Variables for PerturbationProfile
+const float vi = -1.2;
+const int MaxMotorRPM = 1000;
+byte BeltAccel;
+float dT;
+
 
 void setup() {
   // Begin Serial Output
@@ -188,9 +200,13 @@ void setup() {
   // Mode 4
   for (int L = 0; L < LeftSpeedLength4; L++) {
     // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
-    LeftSpeedPWM4 [L] = map(LeftSpeedProfile4[L], -1000, 1000, 0, 255);
-    LeftTimingSum4 += LeftMotorTiming4 [L];
-    LeftTiming4 [L] = LeftTimingSum4;
+    //LeftSpeedPWM4 [L] = map(LeftSpeedProfile4[L], -1000, 1000, 0, 255);
+    //LeftTimingSum4 += LeftMotorTiming4 [L];
+    //LeftTiming4 [L] = LeftTimingSum4;
+
+    LeftSpeedPWM4 [L] = LeftSpeedProfile4[L];
+    LeftTiming4 [L] = LeftMotorTiming4 [L];
+
     Serial.print("Left Mode 4 PWM ");
     Serial.print(L);
     Serial.print(" = ");
@@ -243,8 +259,8 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(TriggerOnPin), Trigger_ISR, FALLING);   //Create ISR to monitor for changes in Trigger state
 
-  attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
-  attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
+  //attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
+  //attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
 }
 
 void loop() {
@@ -273,6 +289,11 @@ void loop() {
     // Turn off motor enable pins so the motor stops when the switch changes positions
     digitalWrite(Right_Enable_Pin, LOW);
     digitalWrite(Left_Enable_Pin, LOW);
+    // Reset trigger so belt speed profiles dont continue to run when the switch changes position
+    TriggerMode = 0;
+    digitalWrite(GreenLEDpin, LOW); // Turn off Trigger LED
+    LeftStage = 0;  // Reset belt stage so belt speed profiles starts at begining
+    RightStage = 0;
     switch (SwitchPosition) {
       case 1:
         Serial.println("Position 1");
@@ -281,14 +302,23 @@ void loop() {
       case 2:
         Serial.println("Position 2");
         OperatingMode = 2;
+        BeltAccel = 5;
+        dT = 0.4;
+        PerturbationProfile(vi, BeltAccel, dT);
         break;
       case 3:
         Serial.println("Position 3");
         OperatingMode = 3;
+        BeltAccel = 5;
+        dT = 0.5;
+        PerturbationProfile(vi, BeltAccel, dT);
         break;
       case 4:
         Serial.println("Position 4");
         OperatingMode = 4;
+        BeltAccel = 6;
+        dT = 0.3;
+        PerturbationProfile(vi, BeltAccel, dT);
         break;
       case 5:
         Serial.println("Position 5");
@@ -336,10 +366,21 @@ void loop() {
       }
       break;
     case 3:
-      Mode3();
+      if (TriggerMode == 1) {
+        Mode3();
+      }
       break;
     case 4:
-      Mode4();
+      if (TriggerMode == 0) {
+        digitalWrite(Right_Enable_Pin, HIGH);
+        digitalWrite(Left_Enable_Pin, HIGH);
+        MotorSpeed = LeftSpeedPWM4 [0];
+        analogWrite(Right_InputB_Pin, MotorSpeed);
+        analogWrite(Left_InputB_Pin, MotorSpeed);
+      }
+      else if (TriggerMode == 1) {
+        Mode4();
+      }
       break;
     case 5:
       Mode5();
@@ -449,8 +490,6 @@ void Mode5() {
 }
 
 void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [], int RightSpeedLength, int RightSpeedPWM [], int RightTiming []) {
-  static byte LeftStage;
-  static byte RightStage;
   if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= LeftTiming[0] && LeftStage < 1) {
     digitalWrite(Left_Enable_Pin, HIGH);
     analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
@@ -458,7 +497,7 @@ void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [
     Serial.print(LeftStage);
     Serial.print(" - ");
     Serial.println(LeftSpeedPWM [LeftStage]);
-    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     LeftStage = 1;
   }
@@ -470,7 +509,7 @@ void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [
     Serial.print(LeftStage);
     Serial.print(" - ");
     Serial.println(LeftSpeedPWM [LeftStage]);
-    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     LeftStage++;
   }
@@ -493,7 +532,7 @@ void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [
     Serial.print(RightStage);
     Serial.print(" - ");
     Serial.println(RightSpeedPWM [RightStage]);
-    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     RightStage = 1;
   }
@@ -505,7 +544,7 @@ void MotorController (int LeftSpeedLength, int LeftSpeedPWM [], int LeftTiming [
     Serial.print(RightStage);
     Serial.print(" - ");
     Serial.println(RightSpeedPWM [RightStage]);
-    MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
+    //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     RightStage++;
   }
@@ -535,30 +574,144 @@ void MotorDirection (int LeftSpeedPWM, int RightSpeedPWM) {
   }
 }
 
+void PerturbationProfile (float vi, byte BeltAccel, float dT) {
+  // Function to calculate the belt speed profile from the given inputs and
+  // convert that to a PWM value, this function assumes 40 data points per second.
+  
+  Serial.println("Begin");
+
+  // Declare Local Varriables
+  float r = 0.0762;             // Radius of the hub (m)
+  float BeltThickness = 0.0028; // Thickness of the belt (m)
+  int GearRto = 5;            // Gear reduction from the motor to the hub
+  int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
+
+  float rNet = r + BeltThickness;
+
+  // Calculate peak velocity
+  float vf = vi + BeltAccel * dT;
+  //Serial.print("vf = ");
+  //Serial.println(vf);
+
+  // Calculate time to return to Steady State Speed from peak velocity
+  float dtSlow = (vi - vf) / aSlow;
+  //Serial.print("dtSlow = ");
+  //Serial.println(dtSlow);
+
+  // Calculate angular accel of motor from belt acceleration
+  // This is the output tp put into Clearpath's Max Accel
+  // Rounded up to nearest intiger
+  // Output is in units of RPM/s
+  int MotorAngAccel = ceil((BeltAccel / r) * (60 / (2 * 3.14)) * GearRto);
+  //Serial.print("MotorAngAccel = ");
+  //Serial.println(MotorAngAccel);
+
+  // Save Time and Velocity points in array
+  float t[3] = {0, dT * 1000, dT * 1000 + dtSlow * 1000};
+  float v[3] = {vi, vf, vi};
+
+  float MaxValue;
+  // Find number of data points needed in the array
+  for (int i = 1; i < 4; i++) {
+    MaxValue = max(t[i], MaxValue);
+  }
+  //Serial.print("MaxValue = ");
+  //Serial.println(MaxValue);
+
+  // Create array of timing values
+  int NumSpaces = (dT + dtSlow) * 40;
+  //Serial.print("NumSpaces = ");
+  //Serial.println(NumSpaces);
+
+  int MotorTiming[NumSpaces];
+  float TimingDivision = ((dT + dtSlow) / (NumSpaces - 1)) * 1000;
+  //Serial.print("TimingDivision = ");
+  //Serial.println(TimingDivision);
+
+  float TimingSum = 0;
+  float MotorVel[NumSpaces];
+  float yIntercept = vf - ((float)aSlow * dT);
+  //Serial.print("yIntercept = ");
+  //Serial.println(yIntercept);
+  float MotorRPM[NumSpaces];
+  byte MotorPWM[NumSpaces];
+
+  for (int i = 1; i < NumSpaces + 1; i++) {
+    MotorTiming[i] = round(TimingSum);
+    //Serial.print("Motor Timing [");
+    //Serial.print(i);
+    //Serial.print("] =  ");
+    //Serial.println(MotorTiming[i]);
+    TimingSum = TimingSum + TimingDivision;
+    if (MotorTiming[i] <= dT * 1000) {
+      MotorVel[i] = 6 * ((float)MotorTiming[i] / 1000) + vi;
+      //Serial.print("Motor Vel [");
+      //Serial.print(i);
+      //Serial.print("] =  ");
+      //Serial.println(MotorVel[i]);
+    }
+    else if (MotorTiming[i] > dT * 1000) {
+      MotorVel[i] = aSlow * ((float)MotorTiming[i] / 1000) + yIntercept;
+      //Serial.print("Motor Vel [");
+      //Serial.print(i);
+      //Serial.print("] =  ");
+      //Serial.println(MotorVel[i]);
+    }
+
+    //MotorRPM[i] = (MotorVel[i]/rNet)*(60/(2*3.1415))*GearRto;
+    MotorRPM[i] = (MotorVel[i] / rNet) * (9.549297) * GearRto;
+    //Serial.print("MotorRPM [");
+    //Serial.print(i);
+    //Serial.print("] =  ");
+    //Serial.println(MotorRPM[i]);
+
+    // add in a variable for min and max motor speeds because it depends on motor voltage
+    float TempPWM;
+    TempPWM = round((MotorRPM[i] + MaxMotorRPM) * 255 / (2 * MaxMotorRPM));
+
+    if (TempPWM > 255) {
+      MotorPWM[i] = 255;
+    }
+    else if (TempPWM < 0) {
+      MotorPWM[i] = 0;
+    }
+    else {
+      MotorPWM[i] = TempPWM;
+    }
+    //Serial.print("MotorPWM [");
+    //Serial.print(i);
+    //Serial.print("] =  ");
+    //Serial.println(MotorPWM[i]);
+  }
+  Serial.println("END");
+}
 
 
-// ISR to read pwm values sent from motor
-void Left_PWM_Rising () {
+/*
+  // ISR to read pwm values sent from motor
+  void Left_PWM_Rising () {
   attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), PWM_A_Falling, FALLING);
   //LeftPeriodTime = micros() - LeftRiseTime;
   LeftRiseTime = micros();
-}
+  }
 
-void PWM_A_Falling () {
+  void PWM_A_Falling () {
   attachInterrupt(digitalPinToInterrupt(Left_HLFB_Pin), Left_PWM_Rising, RISING);
   LeftHighTime = micros() - LeftRiseTime;
-}
+  }
 
-void Right_PWM_Rising () {
+  void Right_PWM_Rising () {
   attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), PWM_B_Falling, FALLING);
   //RightPeriodTime = micros() - RightRiseTime;
   RightRiseTime = micros();
-}
+  }
 
-void PWM_B_Falling () {
+  void PWM_B_Falling () {
   attachInterrupt(digitalPinToInterrupt(Right_HLFB_Pin), Right_PWM_Rising, RISING);
   RightHighTime = micros() - RightRiseTime;
-}
+  }
+
+*/
 
 void Trigger_ISR () {
   detachInterrupt(digitalPinToInterrupt(TriggerOnPin));
