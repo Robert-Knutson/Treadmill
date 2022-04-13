@@ -23,8 +23,8 @@ const int RightMotorTiming3 []  = {1000, 1000, 2000, 1000};
 int LeftSpeedProfile4 [200];
 int LeftMotorTiming4 [200];
 
-const int RightSpeedProfile4 [] = {-1.2};
-const int RightMotorTiming4 []  = {985};
+const int RightSpeedProfile4 [200];
+const int RightMotorTiming4 [200];
 
 // The following variables control the creation of the desired profiles
 const byte LeftSpeedLength2 = (sizeof(LeftSpeedProfile2) / sizeof(LeftSpeedProfile2[0]));
@@ -40,8 +40,7 @@ int LeftTiming3 [LeftSpeedLength3];
 int RightTiming3 [RightSpeedLength3];
 
 int LeftTiming [LeftSpeedLength4];
-
-int RightTiming4 [RightSpeedLength4];
+int RightTiming [RightSpeedLength4];
 
 byte LeftSpeedPWM2 [LeftSpeedLength2];
 byte RightSpeedPWM2 [RightSpeedLength2];
@@ -50,13 +49,17 @@ byte RightSpeedPWM3 [RightSpeedLength3];
 
 byte LeftSpeedPWM [LeftSpeedLength4];
 
-byte RightSpeedPWM4 [RightSpeedLength4];
+byte RightSpeedPWM [RightSpeedLength4];
 
 // **************************************************
 // ***************** Hardware Pins ******************
 // **************************************************
-// In the following section we will define the pins that the hardware is connected to
+// Define the Arduino pins that hardware is connected to
+
+// Estop
 const int Estop_pin = 2;  // Define Estop pin
+
+// Motor Pins
 const int Left_HLFB_Pin = 18;  // Define Motor_A HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
 const int Right_HLFB_Pin = 19; // Define Motor_B HLFB input Interrupt pin, used in PWM ISR, has to be pin 2, 3, 18, 19 on MEAGA
 
@@ -68,20 +71,29 @@ const int Right_Enable_Pin =  52 ;// the pin number of the ENABLE pin
 const int Right_InputA_Pin =  6 ;// the pin number of the InputA pin, needs to be pins 2 - 13, 44 - 46 for PWM
 const int Right_InputB_Pin =  7 ;// the pin number of the InputB pin, needs to be pins 2 - 13, 44 - 46 for PWM
 
-// Define Pins for Rotary Switch
+// Rotary Switch
 const int SwitchPin1 = 31;
 const int SwitchPin2 = 29;
 const int SwitchPin3 = 27;
 const int SwitchPin4 = 25;
 const int SwitchPin5 = 23;
 
-// Define pin for PushButton
+// PushButton
 const int TriggerOnPin = 3;
 const int TriggerOffPin = 8;
 
-// Define Pins for LEDs
+// LEDs
 const int RedLEDpin = 39;
 const int GreenLEDpin = 37;
+const int PWRLEDpin = 9;
+
+// Belst Select Toggle Switch
+const int SwitchLeftPin = 51;
+const int SwitchRightPin = 50;
+
+// Belt Speed Potentiometer
+const int PotPin = A0;
+
 
 // **************************************************
 // **************** Global Variables ****************
@@ -101,15 +113,17 @@ int LeftDutyCycle;
 int RightDutyCycle;
 
 // Variables for Trigger
-volatile int TriggerISR = 0;
+volatile int TriggerISR = 0;          // Volatile needed so so varibale can be read and modified outside of ISR
 const int TriggerDebounceDelay = 100;
 int CurrentPushTime;
 int LastPushTime;
 byte TriggerMode;
 
+// Variables for timing
 unsigned long StartMillis;
 unsigned long currentMillis;
 
+// Variables for mmotor controller
 byte LeftStage = 0;
 byte RightStage = 0;
 
@@ -125,8 +139,14 @@ int NewBeltSpeed [4];
 // Variables For EStop State
 bool EstopState;
 
+
+// Varriables for Potentiometer
+float WalkingSpeed;
+
+// Varrialbes for Belt Select Toggle Switch
+byte SelectState;
+
 // Variables for PerturbationProfile
-const float vi = -1.2;
 const int MaxMotorRPM = 1000;
 byte BeltAccel;
 float dT;
@@ -222,19 +242,23 @@ void setup() {
   }
   for (int R = 0; R < RightSpeedLength4; R++) {
     // Converts Motor RPM (-1000 to 1000 to corresponding PWM (0 to 255), 0 is max CCW and 255 is max CW)
-    RightSpeedPWM4 [R] = map(RightSpeedProfile4[R], -1000, 1000, 0, 255);
-    RightTimingSum4 += RightMotorTiming4 [R];
-    RightTiming4 [R] = RightTimingSum4;
-    Serial.print("Right Mode 4 PWM ");
-    Serial.print(R);
-    Serial.print(" = ");
-    Serial.print( RightSpeedPWM4 [R]);
-    Serial.print(" @ ");
-    Serial.println(RightTiming4 [R]);
+    //RightSpeedPWM4 [R] = map(RightSpeedProfile4[R], -1000, 1000, 0, 255);
+    //RightTimingSum4 += RightMotorTiming4 [R];
+    //RightTiming4 [R] = RightTimingSum4;
+
+    RightSpeedPWM [R] = RightSpeedProfile4[R];
+    RightTiming [R] = RightMotorTiming4 [R];
+
+    //Serial.print("Right Mode 4 PWM ");
+    //Serial.print(R);
+    //Serial.print(" = ");
+    //Serial.print( RightSpeedPWM4 [R]);
+    //Serial.print(" @ ");
+    //Serial.println(RightTiming4 [R]);
   }
   Serial.println("");
 
-  // set the digital pin as output:
+  // Define inut and output pins
   pinMode(Left_Enable_Pin, OUTPUT);
   pinMode(Left_InputA_Pin, OUTPUT);
   pinMode(Left_InputB_Pin, OUTPUT);
@@ -257,8 +281,12 @@ void setup() {
   pinMode(TriggerOffPin, INPUT_PULLUP);
   pinMode(TriggerOnPin, INPUT_PULLUP);
 
+  pinMode(SwitchLeftPin, INPUT_PULLUP);
+  pinMode(SwitchRightPin, INPUT_PULLUP);
+
   pinMode(RedLEDpin, OUTPUT);
   pinMode(GreenLEDpin, OUTPUT);
+  pinMode(PWRLEDpin, OUTPUT);
 
   digitalWrite(RedLEDpin, LOW);
   digitalWrite(GreenLEDpin, LOW);
@@ -290,8 +318,28 @@ void loop() {
   static byte PrevousSwitchPosition = 8;
   static byte OperatingMode;
 
+  static bool RecalcPerturbationProfile = 1; // Flag to store if Perturbation Profile needs to be recalculated, set to 1 so it auto executes on the first cycle
+  static byte PrevousSelectState = 0;
+  SelectState = digitalRead(SwitchLeftPin) + digitalRead(SwitchRightPin) * 2;
+  if (SelectState != PrevousSelectState) {
+    switch (SelectState) {
+      case 1:
+        Serial.println("Left");
+        break;
+      case 2:
+        Serial.println("Right");
+        break;
+      case 3:
+        Serial.println("BOTH");
+        break;
+    }
+    PrevousSelectState = SelectState;
+    RecalcPerturbationProfile = 1;
+  }
+
   SwitchPosition = (-9) + (digitalRead(SwitchPin1) * 1) + (digitalRead(SwitchPin2) * 2) + (digitalRead(SwitchPin3) * 3) + (digitalRead(SwitchPin4) * 4) + (digitalRead(SwitchPin5) * 5);
   if (PrevousSwitchPosition != SwitchPosition && SwitchPosition != 6) {
+    RecalcPerturbationProfile = 1;
     // Turn off motor enable pins so the motor stops when the switch changes positions
     digitalWrite(Right_Enable_Pin, LOW);
     digitalWrite(Left_Enable_Pin, LOW);
@@ -310,25 +358,27 @@ void loop() {
         OperatingMode = 2;
         BeltAccel = 5;
         dT = 0.4;
-        PerturbationProfile(vi, BeltAccel, dT);
+        //PerturbationProfile(WalkingSpeed, BeltAccel, dT);
         break;
       case 3:
         Serial.println("Position 3");
         OperatingMode = 3;
         BeltAccel = 5;
         dT = 0.5;
-        PerturbationProfile(vi, BeltAccel, dT);
+        //PerturbationProfile(WalkingSpeed, BeltAccel, dT);
         break;
       case 4:
         Serial.println("Position 4");
         OperatingMode = 4;
         BeltAccel = 6;
         dT = 0.3;
-        PerturbationProfile(vi, BeltAccel, dT);
+        //PerturbationProfile(WalkingSpeed, BeltAccel, dT);
         break;
       case 5:
         Serial.println("Position 5");
         OperatingMode = 5;
+        BeltAccel = 6;
+        dT = 0.4;
         break;
       case 6:
         Serial.println("ERROR");
@@ -336,6 +386,35 @@ void loop() {
     }
     PrevousSwitchPosition = SwitchPosition;
   }
+
+  // Read Potentiometer to Determine Walking Speed
+  static byte PrevousPotState = 0;
+  byte PotState = map(analogRead(PotPin), 0, 1024, 0, 255); // Map to byte, used to reduce noise
+  if (abs(PotState - PrevousPotState) >= 2) { // Only update if a large enough change has occoured
+    //float WalkingSpeed = (PotState - 0) * (1.25 - -1.25) / (255 - 0) + -1.25;
+    // Maps PotState to Belt Speed,
+    // Map is used twice to reduce number of floating point calculations in main loop
+    WalkingSpeed = (0.0098039 * PotState - 1.25);
+    if (abs(WalkingSpeed) <= 0.05) {  // Set Walking speed to 0 if its close to 0
+      WalkingSpeed = 0;
+    }
+    if (SelectState == 1) {
+      digitalWrite(Left_Enable_Pin, HIGH);
+    }
+    Serial.print("Pot Reading = ");
+    Serial.print(PotState);
+    Serial.print(", Belt Speed = ");
+    Serial.println(WalkingSpeed);
+    analogWrite(PWRLEDpin, PotState);  // Change Power LED brightness based of reading, just for fun
+    PrevousPotState = PotState;
+    RecalcPerturbationProfile = 1;
+  }
+
+  if (RecalcPerturbationProfile == 1) {
+    PerturbationProfile(WalkingSpeed, BeltAccel, dT);
+    RecalcPerturbationProfile = 0;
+  }
+
 
   if (LeftHighTime != PrevousLeftHighTime) {
     LeftDutyCycle = ((1 - (LeftHighTime / 22176)) * 1000) - 50;//*1000 instead of 100 because float only has 2 decimals of precision so we get more precision
@@ -360,6 +439,7 @@ void loop() {
     EIFR = bit (INT5);  //  Clears ISR Flag, needed because otherwise ISR will trigger again once reenabled, INT5 is the address for pin 3 ISR
     attachInterrupt(digitalPinToInterrupt(TriggerOnPin), Trigger_ISR, FALLING);
   }
+
   switch (OperatingMode) {
     case 1:
       if (TriggerMode == 1) {
@@ -367,12 +447,26 @@ void loop() {
       }
       break;
     case 2:
-      if (TriggerMode == 1) {
+      if (TriggerMode == 0) {
+        digitalWrite(Right_Enable_Pin, HIGH);
+        digitalWrite(Left_Enable_Pin, HIGH);
+        //MotorSpeed = LeftSpeedPWM [0];
+        analogWrite(Right_InputB_Pin, RightSpeedPWM [0]);
+        analogWrite(Left_InputB_Pin, LeftSpeedPWM [0]);
+      }
+      else if (TriggerMode == 1) {
         Mode2();
       }
       break;
     case 3:
-      if (TriggerMode == 1) {
+      if (TriggerMode == 0) {
+        digitalWrite(Right_Enable_Pin, HIGH);
+        digitalWrite(Left_Enable_Pin, HIGH);
+        //MotorSpeed = LeftSpeedPWM [0];
+        analogWrite(Right_InputB_Pin, RightSpeedPWM [0]);
+        analogWrite(Left_InputB_Pin, LeftSpeedPWM [0]);
+      }
+      else if (TriggerMode == 1) {
         Mode3();
       }
       break;
@@ -380,9 +474,9 @@ void loop() {
       if (TriggerMode == 0) {
         digitalWrite(Right_Enable_Pin, HIGH);
         digitalWrite(Left_Enable_Pin, HIGH);
-        MotorSpeed = LeftSpeedPWM [0];
-        analogWrite(Right_InputB_Pin, MotorSpeed);
-        analogWrite(Left_InputB_Pin, MotorSpeed);
+        //MotorSpeed = LeftSpeedPWM [0];
+        analogWrite(Right_InputB_Pin, RightSpeedPWM [0]);
+        analogWrite(Left_InputB_Pin, LeftSpeedPWM [0]);
       }
       else if (TriggerMode == 1) {
         Mode4();
@@ -456,15 +550,16 @@ void Mode1 () {
 
 }
 void Mode2() {
-  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedLength2, RightSpeedPWM2, RightTiming2);
+  //MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedLength2, RightSpeedPWM2, RightTiming2);
+  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedPWM, RightTiming);
 }
 
 void Mode3() {
-  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedLength3, RightSpeedPWM3, RightTiming3);
+  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedPWM, RightTiming);
 }
 
 void Mode4() {
-  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedLength4, RightSpeedPWM4, RightTiming4);
+  MotorController(NumSpaces, LeftSpeedPWM, LeftTiming, RightSpeedPWM, RightTiming);
 }
 
 void Mode5() {
@@ -495,7 +590,7 @@ void Mode5() {
   }
 }
 
-void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], int RightSpeedLength, byte RightSpeedPWM [], int RightTiming []) {
+void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], byte RightSpeedPWM [], int RightTiming []) {
 
   if (currentMillis - StartMillis >  0 && currentMillis - StartMillis <= LeftTiming[1] && LeftStage < 1) {
     digitalWrite(Left_Enable_Pin, HIGH);
@@ -509,7 +604,7 @@ void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], int
     LeftStage = 1;
   }
 
-  else if (currentMillis - StartMillis >  LeftTiming[LeftStage] && currentMillis - StartMillis <= LeftTiming[LeftStage+1] && LeftStage >= 1) {
+  else if (currentMillis - StartMillis >  LeftTiming[LeftStage] && currentMillis - StartMillis <= LeftTiming[LeftStage + 1] && LeftStage >= 1) {
     analogWrite(Left_InputB_Pin, LeftSpeedPWM [LeftStage]);
     //LeftStage=2;
     Serial.print("Left Stage ");
@@ -522,10 +617,10 @@ void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], int
     Serial.println();
     LeftStage++;
   }
-  else if (LeftStage == NumSpaces) {
-    if (LeftTiming[NumSpaces] >= RightTiming[RightSpeedLength]) {
-      Serial.println(LeftTiming[NumSpaces]);
-      Serial.println(RightTiming[RightSpeedLength]);
+  else if (LeftStage == NumSpaces - 1) {
+    if (LeftTiming[NumSpaces] >= RightTiming[NumSpaces]) {
+      Serial.println(LeftTiming[NumSpaces - 1]);
+      Serial.println(RightTiming[NumSpaces - 1]);
       Serial.println("Done");
       TriggerMode = 0;
       digitalWrite(GreenLEDpin, LOW);
@@ -541,27 +636,29 @@ void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], int
     Serial.print("Right Stage ");
     Serial.print(RightStage);
     Serial.print(" - ");
-    Serial.println(RightSpeedPWM [RightStage]);
+    Serial.print(RightSpeedPWM [RightStage]);
     //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     RightStage = 1;
   }
 
-  else if (currentMillis - StartMillis >  RightTiming[RightStage] && currentMillis - StartMillis <= RightTiming[RightStage+1] && RightStage >= 1) {
+  else if (currentMillis - StartMillis >  RightTiming[RightStage] && currentMillis - StartMillis <= RightTiming[RightStage + 1] && RightStage >= 1) {
     analogWrite(Right_InputB_Pin, RightSpeedPWM [RightStage]);
     //LeftStage=2;
     Serial.print("Right Stage ");
     Serial.print(RightStage);
     Serial.print(" - ");
-    Serial.println(RightSpeedPWM [RightStage]);
+    Serial.print(RightSpeedPWM [RightStage]);
+    Serial.print(", NumSpaces = ");
+    Serial.println(NumSpaces);
     //MotorDirection(LeftSpeedPWM[LeftStage], RightSpeedPWM[RightStage]);
     Serial.println();
     RightStage++;
   }
-  else if (RightStage == RightSpeedLength && currentMillis - StartMillis >  RightTiming[RightStage]) {
-    if (RightTiming[RightSpeedLength] >= LeftTiming[NumSpaces]) {
-      Serial.println(RightTiming[RightSpeedLength]);
-      Serial.println(LeftTiming[NumSpaces]);
+  else if (RightStage == NumSpaces - 1) {
+    if (RightTiming[NumSpaces] >= LeftTiming[NumSpaces]) {
+      Serial.println(RightTiming[NumSpaces - 1]);
+      Serial.println(LeftTiming[NumSpaces - 1]);
       Serial.println("Done");
       TriggerMode = 0;
       digitalWrite(GreenLEDpin, LOW);
@@ -586,17 +683,17 @@ void MotorDirection (int LeftSpeedPWM, int RightSpeedPWM) {
 }
 
 
-int numSpaces (float vi, byte BeltAccel, float dT) {
+int numSpaces (float WalkingSpeed, byte BeltAccel, float dT) {
   Serial.println("numSpacesBegin");
 
   // Declare Local Varriables
   int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
 
   // Calculate peak velocity
-  float vf = vi + BeltAccel * dT;
+  float vf = WalkingSpeed + BeltAccel * dT;
 
   // Calculate time to return to Steady State Speed from peak velocity
-  float dtSlow = (vi - vf) / aSlow;
+  float dtSlow = (WalkingSpeed - vf) / aSlow;
 
   int NumSpaces = (dT + dtSlow) * 40;
 
@@ -604,7 +701,7 @@ int numSpaces (float vi, byte BeltAccel, float dT) {
 }
 
 
-void PerturbationProfile (float vi, byte BeltAccel, float dT) {
+void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
   // Function to calculate the belt speed profile from the given inputs and
   // convert that to a PWM value, this function assumes 40 data points per second.
 
@@ -619,12 +716,12 @@ void PerturbationProfile (float vi, byte BeltAccel, float dT) {
   float rNet = r + BeltThickness;
 
   // Calculate peak velocity
-  float vf = vi + BeltAccel * dT;
+  float vf = WalkingSpeed + BeltAccel * dT;
   //Serial.print("vf = ");
   //Serial.println(vf);
 
   // Calculate time to return to Steady State Speed from peak velocity
-  float dtSlow = (vi - vf) / aSlow;
+  float dtSlow = (WalkingSpeed - vf) / aSlow;
   //Serial.print("dtSlow = ");
   //Serial.println(dtSlow);
 
@@ -638,10 +735,10 @@ void PerturbationProfile (float vi, byte BeltAccel, float dT) {
 
   // Save Time and Velocity points in array
   float t[3] = {0, dT * 1000, dT * 1000 + dtSlow * 1000};
-  float v[3] = {vi, vf, vi};
+  float v[3] = {WalkingSpeed, vf, WalkingSpeed};
 
   // Create array of timing values
-  NumSpaces = numSpaces (vi, BeltAccel, dT);
+  NumSpaces = numSpaces (WalkingSpeed, BeltAccel, dT);
   Serial.print("NumSpaces = ");
   Serial.println(NumSpaces);
 
@@ -660,16 +757,17 @@ void PerturbationProfile (float vi, byte BeltAccel, float dT) {
   byte MotorPWM[NumSpaces];
 
 
-  for (int i = 0; i < NumSpaces + 1; i++) {
+  for (int i = 0; i < NumSpaces; i++) {
     MotorTiming[i] = round(TimingSum);
-    LeftTiming[i] = MotorTiming[i] ;
+    LeftTiming[i] = MotorTiming[i];
+    RightTiming[i] = MotorTiming[i];
     //Serial.print("LeftMotorTiming4 [");
     //Serial.print(i);
     //Serial.print("] =  ");
     //Serial.println(LeftMotorTiming4[i]);
     TimingSum = TimingSum + TimingDivision;
     if (MotorTiming[i] <= dT * 1000) {
-      MotorVel[i] = BeltAccel * ((float)MotorTiming[i] / 1000) + vi;
+      MotorVel[i] = BeltAccel * ((float)MotorTiming[i] / 1000) + WalkingSpeed;
       //Serial.print("Motor Vel [");
       //Serial.print(i);
       //Serial.print("] =  ");
@@ -690,24 +788,55 @@ void PerturbationProfile (float vi, byte BeltAccel, float dT) {
     //Serial.print("] =  ");
     //Serial.println(MotorRPM[i]);
 
+
+
     // add in a variable for min and max motor speeds because it depends on motor voltage
     float TempPWM;
-    TempPWM = round((MotorRPM[i] + MaxMotorRPM) * 255 / (2 * MaxMotorRPM));
+    //(MotorRPM[i] - -MaxMotorRPM) * (254 - 1) / (2 * MaxMotorRPM) + 1;
+    TempPWM = round((MotorRPM[i] + MaxMotorRPM) * 253 / (2 * MaxMotorRPM) + 1);
 
-    if (TempPWM > 255) {
-      MotorPWM[i] = 255;
+    if (TempPWM > 254) {
+      MotorPWM[i] = 254;
     }
-    else if (TempPWM < 0) {
-      MotorPWM[i] = 0;
+    else if (TempPWM < 1) {
+      MotorPWM[i] = 1;
     }
     else {
       MotorPWM[i] = TempPWM;
     }
-    LeftSpeedPWM[i] = MotorPWM[i];
-    //Serial.print("MotorPWM [");
+
+    //Serial.print("Select State = ");
+    //Serial.println(SelectState);
+    switch (SelectState) {
+      case 1:
+        //("Left");
+        LeftSpeedPWM[i] = MotorPWM[i];
+        //map(value, fromLow, fromHigh, toLow, toHigh)
+        RightSpeedPWM[i] = map(MotorPWM[0], 1, 254, 254, 1);
+        break;
+      case 2:
+        //("Right");
+        RightSpeedPWM[i] = map(MotorPWM[i], 1, 254, 254, 1);
+        LeftSpeedPWM[i] = MotorPWM[0];
+        break;
+      case 3:
+        //("BOTH");
+        LeftSpeedPWM[i] = MotorPWM[i];
+        RightSpeedPWM[i] = map(MotorPWM[i], 1, 254, 254, 1);
+        break;
+    }
+
+    //LeftSpeedPWM[i] = MotorPWM[i];
+
+    //Serial.print("Left PWM [");
     //Serial.print(i);
     //Serial.print("] =  ");
-    //Serial.println(MotorPWM[i]);
+    //Serial.println(LeftSpeedPWM[i]);
+
+    //Serial.print("Right PWM [");
+    //Serial.print(i);
+    //Serial.print("] =  ");
+    //Serial.println(RightSpeedPWM[i]);
   }
   Serial.println("END");
 
