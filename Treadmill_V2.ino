@@ -148,9 +148,11 @@ byte SelectState;
 
 // Variables for PerturbationProfile
 const int MaxMotorRPM = 1000;
-byte BeltAccel;
+int aSlow = -1;
+int BeltAccel;
 float dT;
 int NumSpaces;
+
 
 
 void setup() {
@@ -300,6 +302,7 @@ void setup() {
 void loop() {
   EstopState = digitalRead(Estop_pin);
   static bool PrevousEstopState;
+  static bool EstopSafetyDisable;
   if (EstopState == 1) {
     // This forces the motors to disable every loop iteration even if another function is trying to enable them.
     digitalWrite(Right_Enable_Pin, LOW);
@@ -310,10 +313,14 @@ void loop() {
   }
   else if (PrevousEstopState != EstopState) {
     Serial.println("EStop Disengaged");
+    Serial.println("Return Belt Speed To Zero To Re-Enable Motion");
     digitalWrite(RedLEDpin, LOW);
     PrevousEstopState = 0;
+    EstopSafetyDisable = 1;   // Flag to not allow belt motion untill belt speed is reset to zero
   }
+
   currentMillis = millis();
+
   static byte SwitchPosition;
   static byte PrevousSwitchPosition = 8;
   static byte OperatingMode;
@@ -341,8 +348,8 @@ void loop() {
   if (PrevousSwitchPosition != SwitchPosition && SwitchPosition != 6) {
     RecalcPerturbationProfile = 1;
     // Turn off motor enable pins so the motor stops when the switch changes positions
-    digitalWrite(Right_Enable_Pin, LOW);
-    digitalWrite(Left_Enable_Pin, LOW);
+    //digitalWrite(Right_Enable_Pin, LOW);
+    //digitalWrite(Left_Enable_Pin, LOW);
     // Reset trigger so belt speed profiles dont continue to run when the switch changes position
     TriggerMode = 0;
     digitalWrite(GreenLEDpin, LOW); // Turn off Trigger LED
@@ -370,7 +377,7 @@ void loop() {
       case 4:
         Serial.println("Position 4");
         OperatingMode = 4;
-        BeltAccel = 6;
+        BeltAccel = -6;
         dT = 0.3;
         //PerturbationProfile(WalkingSpeed, BeltAccel, dT);
         break;
@@ -384,6 +391,13 @@ void loop() {
         Serial.println("ERROR");
         break;
     }
+    if (OperatingMode == 4) {
+      aSlow = 1;
+    }
+    else {
+      aSlow = -1;
+    }
+
     PrevousSwitchPosition = SwitchPosition;
   }
 
@@ -413,6 +427,29 @@ void loop() {
   if (RecalcPerturbationProfile == 1) {
     PerturbationProfile(WalkingSpeed, BeltAccel, dT);
     RecalcPerturbationProfile = 0;
+  }
+
+  if (EstopSafetyDisable == 1) {
+    digitalWrite(Right_Enable_Pin, LOW);  // Keep the motors Disengaged
+    digitalWrite(Left_Enable_Pin, LOW);
+    bool LEDstate = 1;
+    while (EstopSafetyDisable == 1) {     // Loop untill Belt motion is reset to zero
+      PotState = map(analogRead(PotPin), 0, 1024, 0, 255); // Read PotState again so we can exit the loop if it changes
+      if (PotState != 125) {
+        digitalWrite(RedLEDpin, LEDstate);    // Blink all LEDs so user knows there is an issue
+        digitalWrite(GreenLEDpin, LEDstate);
+        digitalWrite(PWRLEDpin, LEDstate);
+        delay(250);
+        LEDstate = !LEDstate;
+      }
+      else if (PotState == 125) {
+        EstopSafetyDisable = 0;
+        Serial.println("Motion Allowed");
+        Serial.println("");
+        digitalWrite(RedLEDpin, LOW);
+        digitalWrite(GreenLEDpin, LOW);
+      }
+    }
   }
 
 
@@ -619,9 +656,9 @@ void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], byt
   }
   else if (LeftStage == NumSpaces - 1) {
     if (LeftTiming[NumSpaces] >= RightTiming[NumSpaces]) {
-      Serial.println(LeftTiming[NumSpaces - 1]);
-      Serial.println(RightTiming[NumSpaces - 1]);
       Serial.println("Done");
+      Serial.println(LeftTiming[NumSpaces - 2]);
+      Serial.println(RightTiming[NumSpaces - 2]);
       TriggerMode = 0;
       digitalWrite(GreenLEDpin, LOW);
     }
@@ -657,9 +694,9 @@ void MotorController (int NumSpaces, byte LeftSpeedPWM[], int LeftTiming [], byt
   }
   else if (RightStage == NumSpaces - 1) {
     if (RightTiming[NumSpaces] >= LeftTiming[NumSpaces]) {
+
       Serial.println(RightTiming[NumSpaces - 1]);
       Serial.println(LeftTiming[NumSpaces - 1]);
-      Serial.println("Done");
       TriggerMode = 0;
       digitalWrite(GreenLEDpin, LOW);
     }
@@ -683,11 +720,11 @@ void MotorDirection (int LeftSpeedPWM, int RightSpeedPWM) {
 }
 
 
-int numSpaces (float WalkingSpeed, byte BeltAccel, float dT) {
-  Serial.println("numSpacesBegin");
+int numSpaces (float WalkingSpeed, int BeltAccel, float dT) {
+  //Serial.println("numSpacesBegin");
 
   // Declare Local Varriables
-  int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
+  //int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
 
   // Calculate peak velocity
   float vf = WalkingSpeed + BeltAccel * dT;
@@ -701,7 +738,7 @@ int numSpaces (float WalkingSpeed, byte BeltAccel, float dT) {
 }
 
 
-void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
+void PerturbationProfile (float WalkingSpeed, int BeltAccel, float dT) {
   // Function to calculate the belt speed profile from the given inputs and
   // convert that to a PWM value, this function assumes 40 data points per second.
 
@@ -711,25 +748,40 @@ void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
   float r = 0.0762;             // Radius of the hub (m)
   float BeltThickness = 0.0028; // Thickness of the belt (m)
   int GearRto = 5;            // Gear reduction from the motor to the hub
-  int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
+  int TempBeltAccel;          // Store local versioin of BeltAccel so we can midufy it
+  int TempAslow;              // Store local version of aSlow so we can modify it
+  //int aSlow = -1;              // Rate to slow down the belt after hitting peak speed (m/s^2)
 
   float rNet = r + BeltThickness;
 
+  if (WalkingSpeed > 0) {
+    TempBeltAccel = BeltAccel * (-1);
+    TempAslow = aSlow * (-1);
+  }
+  else if (WalkingSpeed <= 0) {
+    TempBeltAccel = BeltAccel;
+    TempAslow = aSlow;
+  }
+  Serial.println(aSlow);
+  Serial.println(BeltAccel);
+
+
   // Calculate peak velocity
-  float vf = WalkingSpeed + BeltAccel * dT;
+  float vf = WalkingSpeed + TempBeltAccel * dT;
   //Serial.print("vf = ");
   //Serial.println(vf);
 
   // Calculate time to return to Steady State Speed from peak velocity
-  float dtSlow = (WalkingSpeed - vf) / aSlow;
+  float dtSlow = abs((WalkingSpeed - vf) / TempAslow);
   //Serial.print("dtSlow = ");
   //Serial.println(dtSlow);
+
 
   // Calculate angular accel of motor from belt acceleration
   // This is the output tp put into Clearpath's Max Accel
   // Rounded up to nearest intiger
   // Output is in units of RPM/s
-  int MotorAngAccel = ceil((BeltAccel / r) * (60 / (2 * 3.14)) * GearRto);
+  int MotorAngAccel = ceil((TempBeltAccel / r) * (60 / (2 * 3.14)) * GearRto);
   //Serial.print("MotorAngAccel = ");
   //Serial.println(MotorAngAccel);
 
@@ -739,8 +791,8 @@ void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
 
   // Create array of timing values
   NumSpaces = numSpaces (WalkingSpeed, BeltAccel, dT);
-  Serial.print("NumSpaces = ");
-  Serial.println(NumSpaces);
+  //Serial.print("NumSpaces = ");
+  //Serial.println(NumSpaces);
 
 
   float MotorTiming[NumSpaces];
@@ -750,7 +802,7 @@ void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
 
   float TimingSum = 0;
   float MotorVel[NumSpaces];
-  float yIntercept = vf - ((float)aSlow * dT);
+  float yIntercept = vf - ((float)TempAslow * dT);
   //Serial.print("yIntercept = ");
   //Serial.println(yIntercept);
   float MotorRPM[NumSpaces];
@@ -764,17 +816,17 @@ void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
     //Serial.print("LeftMotorTiming4 [");
     //Serial.print(i);
     //Serial.print("] =  ");
-    //Serial.println(LeftMotorTiming4[i]);
+    //Serial.println(LeftTiming[i]);
     TimingSum = TimingSum + TimingDivision;
     if (MotorTiming[i] <= dT * 1000) {
-      MotorVel[i] = BeltAccel * ((float)MotorTiming[i] / 1000) + WalkingSpeed;
+      MotorVel[i] = TempBeltAccel * ((float)MotorTiming[i] / 1000) + WalkingSpeed;
       //Serial.print("Motor Vel [");
       //Serial.print(i);
       //Serial.print("] =  ");
       //Serial.println(MotorVel[i]);
     }
     else if (MotorTiming[i] > dT * 1000) {
-      MotorVel[i] = aSlow * ((float)MotorTiming[i] / 1000) + yIntercept;
+      MotorVel[i] = TempAslow * ((float)MotorTiming[i] / 1000) + yIntercept;
       //Serial.print("Motor Vel [");
       //Serial.print(i);
       //Serial.print("] =  ");
@@ -838,7 +890,8 @@ void PerturbationProfile (float WalkingSpeed, byte BeltAccel, float dT) {
     //Serial.print("] =  ");
     //Serial.println(RightSpeedPWM[i]);
   }
-  Serial.println("END");
+  Serial.println("PROFILE END");
+  Serial.println("");
 
   //*MotorPWM = &LeftSpeedProfile4
   //*MotorTiming = &LeftMotorTiming4
