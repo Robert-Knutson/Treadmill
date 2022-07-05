@@ -1,19 +1,25 @@
 clear;clc;clf
 
-r=0.0762;       % Radius of the hub
-GearRto = 5;    % Gear reduction from the motor to the hub
+rDrum=0.0762;       % Radius of the hub
+BeltThickness = 0.0028;
+GearRto = 5.6;    % Gear reduction from the motor to the hub
+r=rDrum+BeltThickness;
 
 BeltAccel = 6; % Acceleration of belt, units are m/s^2
 
-
-
+% vi = 0;
+% aFast =  [    5,    5,    8,     12,   12];
+% Vmax =   [  1.5,  1.5,  2.5,    3.6,  3.6];
+% dt =     [  0.3,  0.3,  0.3,    0.3,  0.3];
+% dtSlow = [dt(1),    4,    6,  dt(4),    8];
+% aSlow = [aFast(1)*-1, 0, 0, aFast(4)*-1, 0];
 
 vi = 0;
-aFast =  [    5,    5,    8,     12,   12];
-Vmax =   [  1.5,  1.5,  2.5,    3.6,  3.6];
+aFast =  [    0,    0,    0,     0,   0];
+Vmax =   [  1.5,  2,  2.5,    3,  3.6];
 dt =     [  0.3,  0.3,  0.3,    0.3,  0.3];
-dtSlow = [dt(1),    4,    6,  dt(4),    8];
-aSlow = [aFast(1)*-1, 0, 0, aFast(4)*-1, 0];
+dtSlow = [4,    5,    6,  5,    4];
+aSlow = [0, 0, 0, 0, 0];
 
 voltage = 220;  % 110 or 220
 if voltage == 110
@@ -181,16 +187,25 @@ for i=1:5
     NewNewMotorDataCombined{i,1}(3,:) = nonzeros(NewMotorDataCombined{i,1}(3,:));
 end
 
-clf;
-figure(2)
-for i=2:5
-subplot(5,1,i-1)
-hold on
-plot(NewNewMotorDataCombined{i,1}(3,:),NewNewMotorDataCombined{i,1}(1,:),'r','LineWidth',1)
-plot(MotorDataCombined{i,1}(3,:),MotorDataCombined{i,1}(1,:),'b','LineWidth',1)
-legend("New","Old")
-hold off
-end
+% clf;
+% figure(2)
+% for i=2:5
+% subplot(5,1,i-1)
+% hold on
+% plot(NewNewMotorDataCombined{i,1}(3,:),NewNewMotorDataCombined{i,1}(1,:),'r','LineWidth',1)
+% plot(MotorDataCombined{i,1}(3,:),MotorDataCombined{i,1}(1,:),'b','LineWidth',1)
+% legend("New","Old")
+% hold off
+% end
+% 
+% 
+% 
+writematrix(NewNewMotorDataCombined{1,1}, 'MotorData1.csv')
+writematrix(NewNewMotorDataCombined{2,1}, 'MotorData2.csv')
+writematrix(NewNewMotorDataCombined{3,1}, 'MotorData3.csv')
+writematrix(NewNewMotorDataCombined{4,1}, 'MotorData4.csv')
+writematrix(NewNewMotorDataCombined{5,1}, 'MotorData5.csv')
+
 
 % for i = 1:length(tInterp(5,:))
 %     tInterp{5} = tInterp(5,i)*1000;
