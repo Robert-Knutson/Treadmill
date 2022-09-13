@@ -27,7 +27,7 @@ Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
 [.thumb]
-image:Images/media/image1.png[]
+image:Images/media/image1.png[.thumb]
 
 image:Images/media/image2.png[image,width=203,height=129]
 
@@ -40,7 +40,7 @@ to download the entire directory.
 2)  Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
 
-image:Images/media/image3.png[image,align="center"]
+image:Images/media/image3.png[align="center"]
 
 3)  The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
