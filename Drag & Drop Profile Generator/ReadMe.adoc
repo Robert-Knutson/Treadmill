@@ -23,8 +23,9 @@ Download the source code for the entire project by clicking on the green
 code button in the main project folder. This will download all files
 used in this project.
 
-image:Images/media/image1.png[image,width=560,height=146]Alternatively,
-go to a specific file you are interested in and click the copy raw
+image:Images/media/image1.png[image,width=560,height=146]
+
+Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
 image:Images/media/image2.png[image,width=203,height=129]
