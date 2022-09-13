@@ -38,7 +38,9 @@ image:Images/media/image3.png[image,width=288,height=178]
 
 2)  Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
+____
 image:Images/media/image5.png[image,width=288,height=156]
+____
 
 3)  The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
