@@ -34,23 +34,25 @@ image:Images/media/image2.png[image,width=203,height=129]
 [arabic]
 1)  Open the DragAndDropProfileGenerator.m file in MATLAB if you decided
 to download the entire directory.
+
 image:Images/media/image3.png[image,width=288,height=178]
 
 2)  Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
-____
+
 image:Images/media/image5.png[image,width=288,height=156]
-____
 
 3)  The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
 use as many as you want.
+
 image:Images/media/image6.png[image,width=288,height=178]
 
 4)  The second popup is going to ask you how long the total perturbation should
 last in seconds. The is no minimum or maximum, so choose whatever you
 like, but be as close to your desired total time as possible as it makes
 the following graphs easier to read.
+
 image:Images/media/image7.png[image,width=384,height=344]
 
 5)  A graph will be displayed based on the number of points you entered and
@@ -58,6 +60,7 @@ the total duration. On this graph each point, indicated by the blue
 circle, is a draggable item that can be moved anywhere desired. The
 limits on the y-axis are based on the maximum belt speeds for the motor
 input voltage (220 volt in the images below).
+
 image:Images/media/image8.png[image,width=384,height=345]
 
 6)  Once you have dragged the points to wherever you want them, click the
@@ -84,9 +87,7 @@ the profile will use on the Arduino, with no loss in data fidelity.
 still be modified, and the graphs will update when the calculated
 profile button is clicked.
 
-____
 image:Images/media/image10.png[image,width=576,height=549]
-____
 
 [arabic, start=8]
 . The final step is to copy the resulting speed and timing values into
