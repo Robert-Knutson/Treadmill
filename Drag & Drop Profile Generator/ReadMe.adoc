@@ -26,7 +26,7 @@ used in this project.
 Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
-image:Images/media/image1.png[image,width=560,height=146]
+image:Images/media/image1.png[]
 image:Images/media/image2.png[image,width=203,height=129]
 
 == Use:
