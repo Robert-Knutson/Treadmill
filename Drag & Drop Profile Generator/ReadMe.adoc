@@ -26,8 +26,7 @@ used in this project.
 Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
-image:
-  align: center
+
 
 image:Images/media/image1.png[]
 
@@ -37,7 +36,7 @@ image:Images/media/image1.png[]
 </p>
 ++++
 
-image:Images/media/image2.png[]
+image::Images/media/image2.png[]
 
 == Use:
 
