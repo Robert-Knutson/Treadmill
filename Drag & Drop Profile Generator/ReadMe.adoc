@@ -37,7 +37,7 @@ image:Images/media/image1.png[]
 ++++
 
 ++++
-<img width="460" height="300" align="left" role="left" src="https://github.com/Robert-Knutson/Treadmill/tree/main/Drag%20%26%20Drop%20Profile%20Generator/Images/media/image2.png?raw=true"/>
+<img width="460" height="300" align="left" role="left" src="https://github.com/Robert-Knutson/Treadmill/tree/main/Drag%20%26%20Drop%20Profile%20Generator/Images/media/image2.png"/>
 ++++
 
 image::Images/media/image2.png[allign="center"]
