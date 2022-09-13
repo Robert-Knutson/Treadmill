@@ -26,12 +26,14 @@ used in this project.
 Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
+image:
+  align: center
 
 image:Images/media/image1.png[]
 
 ++++
 <p align="center">
-  <img width="460" height="300" src="https://github.com/Robert-Knutson/Treadmill/tree/main/Drag%20%26%20Drop%20Profile%20Generator/Images/media/image2.png">
+  <img width="460" height="300" src="https://github.com/Robert-Knutson/Treadmill/tree/main/Drag%20%26%20Drop%20Profile%20Generator/Images/media/image2">
 </p>
 ++++
 
