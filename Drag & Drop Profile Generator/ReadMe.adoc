@@ -27,32 +27,32 @@ image:Images/media/image1.png[image,width=560,height=146]Alternatively,
 go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
-image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image2.png[image,width=203,height=129]
+image:Images/media/image2.png[image,width=203,height=129]
 
 == Use:
 
 [arabic]
 . Open the DragAndDropProfileGenerator.m file in MATLAB if you decided
 to download the entire directory.
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image3.png[image,width=288,height=178]Click
+. image:Images/media/image3.png[image,width=288,height=178]Click
 the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image5.png[image,width=288,height=156]The
+. image:Images/media/image5.png[image,width=288,height=156]The
 first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
 use as many as you want.
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image6.png[image,width=288,height=178]The
+. image:Images/media/image6.png[image,width=288,height=178]The
 second popup is going to ask you how long the total perturbation should
 last in seconds. The is no minimum or maximum, so choose whatever you
 like, but be as close to your desired total time as possible as it makes
 the following graphs easier to read.
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image7.png[image,width=384,height=344]A
+. image:Images/media/image7.png[image,width=384,height=344]A
 graph will be displayed based on the number of points you entered and
 the total duration. On this graph each point, indicated by the blue
 circle, is a draggable item that can be moved anywhere desired. The
 limits on the y-axis are based on the maximum belt speeds for the motor
 input voltage (220 volt in the images below).
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image8.png[image,width=384,height=345]Once
+. image:Images/media/image8.png[image,width=384,height=345]Once
 you have dragged the points to wherever you want them, click the
 Calculate Profile button in the lower left corner of the screen.
 Clicking this button will result in the function you generated being
@@ -78,7 +78,7 @@ still be modified, and the graphs will update when the calculated
 profile button is clicked.
 
 ____
-image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image10.png[image,width=576,height=549]
+image:Images/media/image10.png[image,width=576,height=549]
 ____
 
 [arabic, start=8]
@@ -100,10 +100,10 @@ should be copied and pasted into the TestSpeed_L variable, where “_”
 denotes the operating mode you want to save this in, it can be mode 1-5.
 ... The second section contains speeds for the right motor. Paste these
 values into the TestSpeed_R variable.
-... image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image11.png[image,width=627,height=168]The
+... image:Images/media/image11.png[image,width=627,height=168]The
 third section is the timing array, paste these values into the
 TestTiming_ variable.
-. image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image13.png[image,width=624,height=45]Once
+. image:Images/media/image13.png[image,width=624,height=45]Once
 everything is pasted into the Arduino code, make sure the correct data
 structure is used. As in curly brackets should encapsulate the data with
 a semicolon at the end.
