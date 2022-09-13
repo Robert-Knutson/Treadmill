@@ -36,7 +36,7 @@ image:Images/media/image1.png[]
 </p>
 ++++
 
-image::Images/media/image2.png[allign="center"]
+image::Images/media/image2.png[allign=center]
 
 == Use:
 
