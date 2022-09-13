@@ -23,7 +23,7 @@ Download the source code for the entire project by clicking on the green
 code button in the main project folder. This will download all files
 used in this project.
 
-image:vertopal_4799cf5f574f4f4ca82de76a9c947d27/media/image1.png[image,width=560,height=146]Alternatively,
+image:Images/media/image1.png[image,width=560,height=146]Alternatively,
 go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
