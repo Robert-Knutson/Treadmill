@@ -27,7 +27,7 @@ Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
 [.thumb]
-image:Images/media/image1.png[role="thumb"]
+image:Images/media/image1.png[role="thumb right"]
 
 image:Images/media/image2.png[image,width=203,height=129]
 
