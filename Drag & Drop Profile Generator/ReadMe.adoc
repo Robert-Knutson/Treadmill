@@ -26,11 +26,11 @@ used in this project.
 Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
-[.thumb]
-image:Images/media/image1.png[border: 3px solid gray ]
-img { border: 3px solid gray }
 
-image:Images/media/image2.png[image,width=203,height=129]
+image:Images/media/image1.png[]
+
+
+image:Images/media/image2.png[]
 
 == Use:
 
@@ -41,20 +41,20 @@ to download the entire directory.
 2)  Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
 
-image:Images/media/image3.png[float="right",align="center"]
+image:Images/media/image3.png[]
 
 3)  The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
 use as many as you want.
 
-image:Images/media/image5.png[image,width=288,height=156]
+image:Images/media/image5.png[]
 
 4)  The second popup is going to ask you how long the total perturbation should
 last in seconds. The is no minimum or maximum, so choose whatever you
 like, but be as close to your desired total time as possible as it makes
 the following graphs easier to read.
 
-image:Images/media/image6.png[image,width=288,height=178]
+image:Images/media/image6.png[]
 
 5)  A graph will be displayed based on the number of points you entered and
 the total duration. On this graph each point, indicated by the blue
@@ -62,7 +62,7 @@ circle, is a draggable item that can be moved anywhere desired. The
 limits on the y-axis are based on the maximum belt speeds for the motor
 input voltage (220 volt in the images below).
 
-image:Images/media/image7.png[image,width=384,height=344]
+image:Images/media/image7.png[]
 
 6)  Once you have dragged the points to wherever you want them, click the
 Calculate Profile button in the lower left corner of the screen.
@@ -70,7 +70,7 @@ Clicking this button will result in the function you generated being
 converted into speed and timing values that can be used to control the
 motors.
 
-image:Images/media/image8.png[image,width=384,height=345]
+image:Images/media/image8.png[]
 
 7)  A figure containing three graphs will be generated when the calculate
 profile button is clicked.
@@ -91,7 +91,7 @@ the profile will use on the Arduino, with no loss in data fidelity.
 still be modified, and the graphs will update when the calculated
 profile button is clicked.
 
-image:Images/media/image10.png[image,width=576,height=549]
+image:Images/media/image10.png[]
 
 [arabic]
 8)  The final step is to copy the resulting speed and timing values into
@@ -115,14 +115,14 @@ values into the TestSpeed_R variable.
 ... The third section is the timing array, paste these values into the
 TestTiming_ variable.
 
-image:Images/media/image11.png[image,width=627,height=250]
+image:Images/media/image11.png[]
 
 
 9)  Once everything is pasted into the Arduino code, make sure the correct data
 structure is used. As in curly brackets should encapsulate the data with
 a semicolon at the end.
 
-image:Images/media/image13.png[image,width=624,height=45]
+image:Images/media/image13.png[]
 
 10)  Upload the code to the board and that’s it. Congratulations! Great
 Job!
