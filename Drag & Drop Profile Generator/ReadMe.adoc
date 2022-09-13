@@ -33,7 +33,7 @@ image:Images/media/image2.png[image,width=203,height=129]
 == Use:
 
 [arabic]
-1.  Open the DragAndDropProfileGenerator.m file in MATLAB if you decided
+1)  Open the DragAndDropProfileGenerator.m file in MATLAB if you decided
 to download the entire directory.
 
 image:Images/media/image3.png[image,width=288,height=178]
