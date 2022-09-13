@@ -90,8 +90,8 @@ profile button is clicked.
 
 image:Images/media/image10.png[image,width=576,height=549]
 
-[arabic, start=8]
-. The final step is to copy the resulting speed and timing values into
+[arabic]
+8)  The final step is to copy the resulting speed and timing values into
 the Arduino code.
 [loweralpha]
 .. Clicking the calculate profile button also resulted a file named
@@ -109,14 +109,19 @@ should be copied and pasted into the TestSpeed_L variable, where “_”
 denotes the operating mode you want to save this in, it can be mode 1-5.
 ... The second section contains speeds for the right motor. Paste these
 values into the TestSpeed_R variable.
-... image:Images/media/image11.png[image,width=627,height=168]The
-third section is the timing array, paste these values into the
+... The third section is the timing array, paste these values into the
 TestTiming_ variable.
-. image:Images/media/image13.png[image,width=624,height=45]Once
-everything is pasted into the Arduino code, make sure the correct data
+
+image:Images/media/image11.png[image,width=627,height=168]
+
+
+9)  Once everything is pasted into the Arduino code, make sure the correct data
 structure is used. As in curly brackets should encapsulate the data with
 a semicolon at the end.
-. Upload the code to the board and that’s it. Congratulations! Great
+
+image:Images/media/image13.png[image,width=624,height=45]
+
+10)  Upload the code to the board and that’s it. Congratulations! Great
 Job!
 
 == Variables You Can Modify in the Code:
