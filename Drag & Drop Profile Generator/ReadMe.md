@@ -1,3 +1,5 @@
+# Directions for Drag & Drop Profile Generator
+
 This software was designed to be as user friendly as possible by using
 on-screen buttons and popups to allow for the creation of custom,
 complex, perturbation profiles.
