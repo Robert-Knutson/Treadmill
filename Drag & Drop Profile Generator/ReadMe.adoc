@@ -23,11 +23,10 @@ Download the source code for the entire project by clicking on the green
 code button in the main project folder. This will download all files
 used in this project.
 
-image:Images/media/image1.png[image,width=560,height=146]
-
 Alternatively,go to a specific file you are interested in and click the copy raw
 contents button which can then be pasted into a blank MATLAB sketch.
 
+image:Images/media/image1.png[image,width=560,height=146]
 image:Images/media/image2.png[image,width=203,height=129]
 
 == Use:
@@ -38,27 +37,32 @@ to download the entire directory.
 
 image:Images/media/image3.png[image,width=288,height=178]
 
-2.  Click the run button to start the program. If you don’t see it click somewhere
+2)  Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
 
 image:Images/media/image5.png[image,width=288,height=156]
 
-3.  The first popup will ask you to enter the number of points you need. Each
+3)  The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
 use as many as you want.
-. image:Images/media/image6.png[image,width=288,height=178]The
-second popup is going to ask you how long the total perturbation should
+
+image:Images/media/image6.png[image,width=288,height=178]
+4)  The second popup is going to ask you how long the total perturbation should
 last in seconds. The is no minimum or maximum, so choose whatever you
 like, but be as close to your desired total time as possible as it makes
 the following graphs easier to read.
-. image:Images/media/image7.png[image,width=384,height=344]A
-graph will be displayed based on the number of points you entered and
+
+image:Images/media/image7.png[image,width=384,height=344]
+
+5)  A graph will be displayed based on the number of points you entered and
 the total duration. On this graph each point, indicated by the blue
 circle, is a draggable item that can be moved anywhere desired. The
 limits on the y-axis are based on the maximum belt speeds for the motor
 input voltage (220 volt in the images below).
-. image:Images/media/image8.png[image,width=384,height=345]Once
-you have dragged the points to wherever you want them, click the
+
+image:Images/media/image8.png[image,width=384,height=345]
+
+6)  Once you have dragged the points to wherever you want them, click the
 Calculate Profile button in the lower left corner of the screen.
 Clicking this button will result in the function you generated being
 converted into speed and timing values that can be used to control the
