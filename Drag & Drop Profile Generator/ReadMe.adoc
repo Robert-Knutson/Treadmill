@@ -35,11 +35,15 @@ image:Images/media/image2.png[image,width=203,height=129]
 [arabic]
 . Open the DragAndDropProfileGenerator.m file in MATLAB if you decided
 to download the entire directory.
-. image:Images/media/image3.png[image,width=288,height=178]
-Click the run button to start the program. If you don’t see it click somewhere
+
+image:Images/media/image3.png[image,width=288,height=178]
+
+. Click the run button to start the program. If you don’t see it click somewhere
 in the code and it should appear.
-. image:Images/media/image5.png[image,width=288,height=156]The
-first popup will ask you to enter the number of points you need. Each
+
+image:Images/media/image5.png[image,width=288,height=156]
+
+. The first popup will ask you to enter the number of points you need. Each
 point is a moveable item, the minimum recommended is three, but you can
 use as many as you want.
 . image:Images/media/image6.png[image,width=288,height=178]The
