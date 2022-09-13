@@ -112,7 +112,7 @@ values into the TestSpeed_R variable.
 ... The third section is the timing array, paste these values into the
 TestTiming_ variable.
 
-image:Images/media/image11.png[image,width=627,height=168]
+image:Images/media/image11.png[image,width=627,height=250]
 
 
 9)  Once everything is pasted into the Arduino code, make sure the correct data
