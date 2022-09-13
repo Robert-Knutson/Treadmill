@@ -29,8 +29,7 @@ contents button which can then be pasted into a blank MATLAB sketch.
 
 image:Images/media/image1.png[]
 
-
-image:Images/media/image2.png[]
+image:Images/media/image2.png[allign=center]
 
 == Use:
 
