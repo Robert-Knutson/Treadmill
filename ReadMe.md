@@ -202,9 +202,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Have any questions?  Contact me!
 
-You can find my email address [here](anion7.rk@gmail.com) 
+Email: anion7.rk@gmail.com 
 
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+Project Link: [https://github.com/Robert-Knutson/Treadmill/](https://github.com/Robert-Knutson/Treadmill/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
