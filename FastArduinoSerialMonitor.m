@@ -53,4 +53,4 @@ while IncomingData ~= "ERROR"       % If error is reported on Arduino, exit loop
 end
  
  
-clear s;
+clear s; % Close serial port if program completes sucessfully
