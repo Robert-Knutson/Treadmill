@@ -36,14 +36,14 @@ t=0;
  
 %% Read Data
 while IncomingData ~= "ERROR"       % If error is reported on Arduino, exit loop
-    t=toc;  % Store timer value in temp variable
+    %t=toc;  % Store timer value in temp variable
     %disp(t)
     IncomingData = strtrim(readline(s));    % read data from the serial port, get rid of carriage returns and unnessicary characters
     disp(IncomingData)  % Print incoming data to the command window
     if (IncomingData == "Trigger")  % Begin timer when "Trigger" is sent over the serial port
         tic;    % Begin Timer
     elseif (IncomingData == "Done")
-        t=toc;  % Store final time
+        t=toc;  % Store time elapsed since begining Matlab timer
         disp(t) % Print final time to command window
         AdruinoTime = str2double(strtrim(readline(s))); % Read the last line of data to get Arduino reported final time & convert to number
         Tdiff(i) = t-AdruinoTime;   % Calculate the difference between Arduino time and Matlab time, should be similar
