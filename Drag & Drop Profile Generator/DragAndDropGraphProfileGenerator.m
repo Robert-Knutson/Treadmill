@@ -41,7 +41,7 @@ v=[zeros(1,NumPoints)];
 
 for i=2:NumPoints
     t(i) = t(i-1) + TotalTime/(NumPoints-1);
-    v(i) = v(i-1) + 0.25;
+    v(i) = v(i-1) + 0.125;
     if i==NumPoints
         v(i) = 0;
     end
