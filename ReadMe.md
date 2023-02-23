@@ -148,6 +148,8 @@ Alternatively, go to a specific file you are interested in and click the copy ra
 
 Profiles can be created using the Dgar & Drop Profile Generator, see that folder for more information. 
 
+[![Product Name Screen Shot][hmi-picture]](https://example.com)
+
 Simple operation of the PPT by an individual with no coding experience is facilitated via the HMI. A five-position rotary switch dictates the desired perturbation intensity from predefined values. A center detent potentiometer controls the steady-state walking speed for walking perturbations and provides tactile feedback when the belt speed is set to zero. A three-position switch determines which belt will be active (left, right, or both). A pushbutton switch initiates the perturbation, providing tactile and auditory feedback when engaged. A green trigger status Light Emitting Diode (LED) indicates when a perturbation is being performed. A large Emergency Stop button shuts down the treadmill in case of an emergency with a red LED to indicate activation. A green LED on the right indicates when the system is active and awaiting operator input. All LEDs blink in unison if the software detects a dangerous situation, such as when the belt speed is at a non-zero value on initial power-up or when the Emergency Stop is disengaged. The treadmill is controlled with an Arduino Mega 2560 microcontroller (Arduino, Somerville, MA, USA), which monitors HMI button states and regulates motor speed via Pulse Width Modulated (PWM) signals
 
 
@@ -249,6 +251,7 @@ Use this space to list resources you find helpful and would like to give credit 
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/robert-knutson-13254a112/
 [product-screenshot]: https://github.com/Robert-Knutson/Treadmill/blob/main/Images/TreadmilPicture.jpg
+[hmi-picture]: https://github.com/Robert-Knutson/Treadmill/blob/main/Images/Treadmill%20HMI.jpg
 
 
 
