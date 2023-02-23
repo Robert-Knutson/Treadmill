@@ -37,7 +37,7 @@
   <h3 align="center">Software for the Portable Purterbation Treadmill</h3>
 
   <p align="center">
-    This repository contains all the programs and CAD files I used to create the treadmill!
+    This repository contains all the programs I created for the treadmill.
     <br />
     <a href="https://github.com/Robert-Knutson/Treadmill"><strong>Explore the docs »</strong></a>
     <br />
