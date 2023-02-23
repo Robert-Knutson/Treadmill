@@ -87,6 +87,9 @@
 
 The goal of this project was to was to design, fabricate, and validate a mobile perturbation treadmill for balance recovery research.
 
+A folder containing, all the pictures, calculation software, and cad files, can be found here:
+https://drive.google.com/drive/folders/1DKQCvQDukhAqRwlkpNQLH-X5j2HSn_FG?usp=sharing
+
 Perturbation Training is an emerging field of study that has been shown to reduce injury rates associated with trips and falls in elderly adults.  In a typical training session, the user stands or walks on a treadmill and is subject to sudden, unexpected acceleration, simulating a slip or trip in a laboratory-controlled environment.  The goal of this training is to improve the user’s ability to maintain and recover balance in situations that can often lead to falls.
 
   Traditionally, treadmills used for this are large, instrumented devices, that are rigidly bolted to the floor.  This presents a problem for elderly patients with limited mobility and a lack of nearby facilities.  A portable treadmill would be able to serve a larger portion of the at-risk population than current methods have allowed.  We developed a portable perturbation treadmill, capable of high-intensity perturbations.  The final design features a tandem belt configuration, individual belt control, and a minimal gap between the belts.  Each side of the system is fully redundant, each belt is capable of handling 100% of the load.  The belt speed is dictated by a custom human-machine interface and software suite, which allows operators with little programming experience to control the device.  The design has been fully validated and it will be used in multiple locations in an upcoming field test. 
