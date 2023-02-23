@@ -146,7 +146,7 @@ Alternatively, go to a specific file you are interested in and click the copy ra
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Profiles can be created using the Dgar & Drop Profile Generator, see that folder for more information. 
+Profiles can be created using the Drag & Drop Profile Generator, see that folder for more information. 
 
 [![Product Name Screen Shot][hmi-picture]]
 
