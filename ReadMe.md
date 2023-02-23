@@ -34,7 +34,7 @@
     <img src="images/logo.png" alt="Logo" width="400" height="200">
   </a>
 
-  <h3 align="center">Software and CAD Files for Portable Purterbation Treadmill</h3>
+  <h3 align="center">Software for the Portable Purterbation Treadmill</h3>
 
   <p align="center">
     This repository contains all the programs and CAD files I used to create the treadmill!
